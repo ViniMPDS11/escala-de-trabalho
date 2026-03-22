@@ -1,0 +1,106 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Container principal */
+.app {
+  padding: 12px;
+  max-width: 500px;
+  margin: auto;
+}
+
+/* Título */
+h1 {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+/* Botão de upload (bonito) */
+.upload {
+  display: block;
+  text-align: center;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  font-weight: bold;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: white;
+  transition: 0.2s;
+}
+
+.upload:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* Cards */
+.card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+  transition: 0.2s;
+}
+
+.card:active {
+  transform: scale(0.99);
+}
+
+/* Cabeçalho */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* Linhas de informação */
+.linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+/* Destaque dia atual */
+.hoje {
+  border: 2px solid #22c55e;
+  background: #052e1f;
+}
+
+/* Folga */
+.folga {
+  opacity: 0.6;
+}
+
+/* Badge */
+.badge {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Badge trabalho */
+.trabalho {
+  background: #22c55e;
+  color: #052e1f;
+}
+
+/* Badge folga */
+.folga-badge {
+  background: #64748b;
+  color: white;
+}

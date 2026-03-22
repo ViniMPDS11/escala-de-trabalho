@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Minha Escala</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <h1>📅 Minha Escala</h1>
+
+  <!-- Botão bonito -->
+  <label class="upload">
+    📄 Importar Escala (PDF)
+    <input type="file" id="pdfInput" multiple accept="application/pdf" hidden>
+  </label>
+
+  <div id="lista"></div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
