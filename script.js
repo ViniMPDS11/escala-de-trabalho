@@ -1,4 +1,12 @@
 const nomeUsuario = "VINICIUS MATHEUS";
+const inicio = new Date(2026, 2, 11);
+
+let dataAtual = new Date();
+
+const mesesNome = [
+  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+];
 
 document.getElementById("pdfInput").addEventListener("change", async (e) => {
   const files = e.target.files;
@@ -8,12 +16,11 @@ document.getElementById("pdfInput").addEventListener("change", async (e) => {
     processarTexto(texto);
   }
 
-  renderizar();
+  render();
 });
 
 async function extrairTextoPDF(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+  const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
 
   let texto = "";
 
@@ -29,41 +36,45 @@ async function extrairTextoPDF(file) {
   return texto;
 }
 
+function criarDataLocal(yyyy, mm, dd) {
+  return new Date(yyyy, mm - 1, dd);
+}
+
+function formatKey(date) {
+  return date.getFullYear() + "-" +
+    String(date.getMonth()+1).padStart(2,"0") + "-" +
+    String(date.getDate()).padStart(2,"0");
+}
+
 function processarTexto(texto) {
   const ano = new Date().getFullYear();
 
-  // 📅 pegar data
   const dataMatch = texto.match(/\d{1,2}\/\d{1,2}/);
   if (!dataMatch) return;
 
   const [dia, mes] = dataMatch[0].split("/");
-  const dataFormatada = `${ano}-${mes.padStart(2,"0")}-${dia.padStart(2,"0")}`;
+  const dateObj = criarDataLocal(ano, Number(mes), Number(dia));
+  const data = formatKey(dateObj);
 
-  // 🔎 achar posição do nome
   const indexNome = texto.indexOf(nomeUsuario);
 
   if (indexNome === -1) {
-    salvar({ data: dataFormatada, status: "FOLGA" });
+    salvar({ data, status: "FOLGA" });
     return;
   }
 
-  // ✂️ cortar trecho da sua linha
   const resto = texto.slice(indexNome);
-
   const corte = resto.search(/\s\d{2,3}\s[A-Z]{2}\d{3}/);
-
   const trecho = corte !== -1 ? resto.slice(0, corte) : resto.slice(0, 200);
 
-  // ⏰ horários
   const horas = trecho.match(/\d{1,2}:\d{2}/g) || [];
   const entrada = horas[0] || "-";
   const saida = horas[1] || "-";
 
-  // 📍 local
   let local = trecho.includes("BAS") ? "BAS" :
               trecho.includes("EGO") ? "EGO" : "-";
 
-  // 🏷 monitor FINAL CORRIGIDO
+  /* 🔥 MONITOR (SEU MÉTODO ORIGINAL CORRETO) */
   let monitor = "-";
 
   const match = trecho.match(/(BAS|EGO)\s+\w+\s+([A-Z\s]+)/);
@@ -71,20 +82,17 @@ function processarTexto(texto) {
   if (match) {
     monitor = match[2].trim();
 
-    // corta próxima linha (ex: 136 ...)
     monitor = monitor.split(/\s+\d{2,3}\s/)[0];
-
-    // corta rodapé
     monitor = monitor.split("CONTROLE")[0];
 
     monitor = monitor.trim();
   }
 
-  let sairCasa = calcularSaidaCasa(entrada, local);
-  let arrumar = calcularArrumar(sairCasa);
+  const sairCasa = calcularSaidaCasa(entrada, local);
+  const arrumar = calcularArrumar(sairCasa);
 
   salvar({
-    data: dataFormatada,
+    data,
     entrada,
     saida,
     local,
@@ -99,90 +107,247 @@ function calcularSaidaCasa(entrada, local) {
   if (entrada === "-") return "-";
 
   let [h, m] = entrada.split(":").map(Number);
+  let d = new Date();
+  d.setHours(h, m);
 
-  let data = new Date();
-  data.setHours(h);
-  data.setMinutes(m);
+  if (local === "BAS") d.setMinutes(d.getMinutes() - 70);
+  if (local === "EGO") d.setMinutes(d.getMinutes() - 100);
 
-  if (local === "BAS") data.setMinutes(data.getMinutes() - 70);
-  if (local === "EGO") data.setMinutes(data.getMinutes() - 100);
-
-  return data.toTimeString().slice(0,5);
+  return d.toTimeString().slice(0,5);
 }
 
 function calcularArrumar(sairCasa) {
   if (sairCasa === "-") return "-";
 
   let [h, m] = sairCasa.split(":").map(Number);
+  let d = new Date();
+  d.setHours(h, m - 60);
 
-  let data = new Date();
-  data.setHours(h);
-  data.setMinutes(m - 60);
-
-  return data.toTimeString().slice(0,5);
+  return d.toTimeString().slice(0,5);
 }
 
 function salvar(dado) {
   let dados = JSON.parse(localStorage.getItem("escala")) || [];
-
   dados = dados.filter(d => d.data !== dado.data);
   dados.push(dado);
-
   localStorage.setItem("escala", JSON.stringify(dados));
 }
 
-function renderizar() {
-  const lista = document.getElementById("lista");
-  lista.innerHTML = "";
+function getStatus(data) {
+  if (data < inicio) return "NONE";
+  const diff = Math.floor((data - inicio) / 86400000);
+  return diff % 8 < 6 ? "WORK" : "OFF";
+}
+
+function mudarMes(v) {
+  dataAtual.setMonth(dataAtual.getMonth() + v);
+  ndar();
+}
+
+function render() {
+  ndar();
+  renderLista();
+}
+
+function ndar() {
+  const cal = document.getElementById("calendar");
+  const mesLabel = document.getElementById("mesAtual");
+
+  cal.innerHTML = "";
+
+  const ano = dataAtual.getFullYear();
+  const mes = dataAtual.getMonth();
+
+  mesLabel.innerText = `${mesesNome[mes]} de ${ano}`;
+
+  const dias = new Date(ano, mes+1, 0).getDate();
+  const hoje = formatKey(new Date());
 
   let dados = JSON.parse(localStorage.getItem("escala")) || [];
 
-  dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+  for (let i = 1; i <= dias; i++) {
+    const d = new Date(ano, mes, i);
+    const key = formatKey(d);
 
-  const hoje = getHojeLocal();
+    const registro = dados.find(x => x.data === key);
 
-  dados.forEach(d => {
-    let div = document.createElement("div");
-    div.classList.add("card");
+    const div = document.createElement("div");
+    div.className = "day";
+    div.onclick = () => irParaData(key);
 
-    if (d.data === hoje) div.classList.add("hoje");
-    if (d.status === "FOLGA") div.classList.add("folga");
+    if (key === hoje) div.classList.add("today");
+
+    const status = getStatus(d);
+
+    if (status === "WORK") div.classList.add("work-day");
+    else if (status === "OFF") div.classList.add("off-day");
+    else div.classList.add("none-day");
 
     div.innerHTML = `
-      <div class="card-header">
-        <span>${formatarData(d.data)}</span>
-        <span class="badge ${d.status === "FOLGA" ? "folga-badge" : "trabalho"}">
-          ${d.status}
-        </span>
+      <div class="day-num">${i}</div>
+      ${registro ? `<div class="dot"></div>` : ""}
+      <div class="day-info">
+        ${registro?.local || ""}
+        ${registro?.entrada ? `<br>${registro.entrada}` : ""}
       </div>
-
-      <div class="linha"><span>Entrada</span><span>${d.entrada || "-"}</span></div>
-      <div class="linha"><span>Saída</span><span>${d.saida || "-"}</span></div>
-      <div class="linha"><span>Local</span><span>${d.local || "-"}</span></div>
-      <div class="linha"><span>Monitor</span><span>${d.monitor || "-"}</span></div>
-      <div class="linha"><span>🚶 Sair</span><span>${d.sairCasa || "-"}</span></div>
-      <div class="linha"><span>⏰ Arrumar</span><span>${d.arrumar || "-"}</span></div>
     `;
 
-    lista.appendChild(div);
+    cal.appendChild(div);
+  }
+}
+
+function renderLista() {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  let dados = JSON.parse(localStorage.getItem("escala") || "[]");
+
+  dados.sort((a,b)=> new Date(a.data) - new Date(b.data));
+
+  const hoje = formatKey(new Date());
+
+  const agrupado = {};
+
+  dados.forEach(d => {
+    const date = criarDataLocal(
+      d.data.slice(0,4),
+      d.data.slice(5,7),
+      d.data.slice(8,10)
+    );
+
+    const ano = date.getFullYear();
+    const mes = date.getMonth();
+
+    if (!agrupado[ano]) agrupado[ano] = {};
+    if (!agrupado[ano][mes]) agrupado[ano][mes] = [];
+
+    agrupado[ano][mes].push(d);
+  });
+
+  Object.keys(agrupado).forEach(ano => {
+
+    const anoHeader = document.createElement("div");
+    anoHeader.className = "ano-header";
+    anoHeader.innerText = ano;
+
+    lista.appendChild(anoHeader);
+
+    Object.keys(agrupado[ano]).forEach(mes => {
+
+      const mesId = `mes-${ano}-${mes}`;
+
+      const mesHeader = document.createElement("div");
+      mesHeader.className = "mes-header";
+      mesHeader.innerText = `${mesesNome[mes]} de ${ano}`;
+      mesHeader.onclick = () => toggleMes(mesId);
+
+      const conteudo = document.createElement("div");
+      conteudo.className = "mes-conteudo";
+      conteudo.id = mesId;
+
+      if (ano == new Date().getFullYear() && mes == new Date().getMonth()) {
+        conteudo.classList.add("ativo");
+      }
+
+      agrupado[ano][mes].forEach(d => {
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.id = "dia-" + d.data;
+
+        if (d.data === hoje) div.classList.add("today");
+
+        if (d.status === "FOLGA") {
+          div.innerHTML = `
+            <div class="card-data">${formatarData(d.data)}</div>
+            <div class="card-linha folga">Folga</div>
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="card-data">${formatarData(d.data)}</div>
+            <div class="card-linha">Entrada: ${d.entrada}</div>
+            <div class="card-linha">Saída: ${d.saida}</div>
+            <div class="card-linha">Local: ${d.local}</div>
+            <div class="card-linha">Monitor: ${d.monitor}</div>
+            <div class="card-linha">Sair: ${d.sairCasa}</div>
+            <div class="card-linha">Arrumar: ${d.arrumar}</div>
+          `;
+        }
+
+        conteudo.appendChild(div);
+      });
+
+      lista.appendChild(mesHeader);
+      lista.appendChild(conteudo);
+    });
   });
 }
 
-// 📅 formatação segura (sem bug de fuso)
+function toggleMes(id) {
+  document.getElementById(id).classList.toggle("ativo");
+}
+
 function formatarData(data) {
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
-// 📅 hoje correto
-function getHojeLocal() {
-  const d = new Date();
-  const dia = String(d.getDate()).padStart(2,"0");
-  const mes = String(d.getMonth()+1).padStart(2,"0");
-  const ano = d.getFullYear();
+function irParaHoje() {
+  const hoje = new Date();
+  const key = formatKey(hoje);
 
-  return `${ano}-${mes}-${dia}`;
+  document.querySelectorAll(".mes-conteudo")
+    .forEach(el => el.classList.remove("ativo"));
+
+  const mesAtualId = `mes-${hoje.getFullYear()}-${hoje.getMonth()}`;
+  const mesAtual = document.getElementById(mesAtualId);
+
+  if (mesAtual) {
+    mesAtual.classList.add("ativo");
+
+    setTimeout(() => {
+      const el = document.getElementById("dia-" + key);
+      if (el) {
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+      }
+    }, 100);
+  }
 }
 
-// iniciar
-renderizar();
+function irParaData(dataStr) {
+  const [ano, mes] = dataStr.split("-");
+
+  // fecha todos os meses
+  document.querySelectorAll(".mes-conteudo")
+    .forEach(el => el.classList.remove("ativo"));
+
+  const mesId = `mes-${ano}-${Number(mes) - 1}`;
+  const mesEl = document.getElementById(mesId);
+
+  if (mesEl) {
+    mesEl.classList.add("ativo");
+
+    setTimeout(() => {
+      const el = document.getElementById("dia-" + dataStr);
+      if (el) {
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+        // espera o scroll terminar
+        setTimeout(() => {
+          el.classList.add("flash");
+
+          setTimeout(() => {
+            el.classList.remove("flash");
+          }, 1200);
+        }, 500);
+      }
+    }, 100);
+  }
+}
+
+render();

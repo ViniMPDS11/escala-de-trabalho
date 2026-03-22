@@ -5,102 +5,207 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  font-family: Arial, sans-serif;
   background: #0f172a;
   color: #e2e8f0;
+  padding: 12px;
 }
 
-/* Container principal */
 .app {
-  padding: 12px;
-  max-width: 500px;
+  max-width: 520px;
   margin: auto;
 }
 
-/* Título */
 h1 {
   text-align: center;
-  font-size: 22px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
-/* Botão de upload (bonito) */
 .upload {
   display: block;
-  text-align: center;
-  padding: 14px;
-  border-radius: 14px;
   background: linear-gradient(135deg, #22c55e, #16a34a);
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
   font-weight: bold;
-  margin-bottom: 14px;
-  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.legenda {
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+}
+
+.mes-controle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mes-controle button {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+#calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.day {
+  border-radius: 12px;
+  padding: 6px;
+  min-height: 72px;
+  position: relative;
+}
+
+.work-day {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.off-day {
+  background: rgba(100, 116, 139, 0.25);
+}
+
+.none-day {
+  background: #1e293b;
+}
+
+.day.today {
+  border: 2px solid #22c55e;
+}
+
+.day-num {
+  font-weight: bold;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background: #3b82f6;
+  border-radius: 50%;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.day-info {
+  font-size: 10px;
+}
+
+.btn-hoje {
+  width: 100%;
+  background: #2563eb;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
   color: white;
-  transition: 0.2s;
 }
 
-.upload:active {
-  transform: scale(0.98);
-  opacity: 0.9;
+/* LISTA */
+
+.ano-header {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 12px 0 6px;
 }
 
-/* Cards */
+.mes-header {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+.mes-conteudo {
+  display: none;
+  margin-top: 8px;
+}
+
+.mes-conteudo.ativo {
+  display: block;
+}
+
+/* CARDS */
 .card {
   background: #1e293b;
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
-  transition: 0.2s;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #334155;
 }
 
-.card:active {
-  transform: scale(0.99);
+.card.flash {
+  animation: flashHighlight 1.2s ease;
 }
 
-/* Cabeçalho */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 15px;
-  font-weight: bold;
+@keyframes flashHighlight {
+  0% {
+    background: #1e293b;
+    transform: scale(1);
+  }
+  30% {
+    background: #2563eb;
+    transform: scale(1.03);
+  }
+  60% {
+    background: #1e293b;
+    transform: scale(1);
+  }
+  100% {
+    background: #1e293b;
+  }
 }
 
-/* Linhas de informação */
-.linha {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  margin: 4px 0;
+.card:first-child {
+  margin-top: 4px;
 }
 
-/* Destaque dia atual */
-.hoje {
+.card.today {
   border: 2px solid #22c55e;
-  background: #052e1f;
+  background: #064e3b;
 }
 
-/* Folga */
-.folga {
-  opacity: 0.6;
-}
-
-/* Badge */
-.badge {
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 11px;
+/* DESTAQUE NO DIA */
+.card-data {
   font-weight: bold;
+  margin-bottom: 6px;
+  font-size: 15px;
+  color: #93c5fd;
 }
 
-/* Badge trabalho */
-.trabalho {
-  background: #22c55e;
-  color: #052e1f;
+.card-linha {
+  font-size: 13px;
+  color: #cbd5e1;
 }
 
-/* Badge folga */
-.folga-badge {
-  background: #64748b;
-  color: white;
+.folga {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.week-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.week-header div {
+  padding: 4px 0;
 }

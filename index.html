@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Minha Escala</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha Escala</title>
 
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -14,11 +14,31 @@
 
   <h1>📅 Minha Escala</h1>
 
-  <!-- Botão bonito -->
   <label class="upload">
-    📄 Importar Escala (PDF)
-    <input type="file" id="pdfInput" multiple accept="application/pdf" hidden>
+    Importar PDFs
+    <input type="file" id="pdfInput" multiple hidden>
   </label>
+
+  <p class="legenda">Base 6x2 desde 11/03/2026</p>
+
+  <div class="mes-controle">
+    <button onclick="mudarMes(-1)">‹</button>
+    <span id="mesAtual"></span>
+    <button onclick="mudarMes(1)">›</button>
+  </div>
+
+  <div class="week-header">
+    <div>DOM</div>
+    <div>SEG</div>
+    <div>TER</div>
+    <div>QUA</div>
+    <div>QUI</div>
+    <div>SEX</div>
+    <div>SAB</div>
+  </div>
+  <div id="calendar"></div>
+
+  <button class="btn-hoje" onclick="irParaHoje()">Hoje</button>
 
   <div id="lista"></div>
 
