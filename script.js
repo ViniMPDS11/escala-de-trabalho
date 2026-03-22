@@ -141,15 +141,15 @@ function getStatus(data) {
 
 function mudarMes(v) {
   dataAtual.setMonth(dataAtual.getMonth() + v);
-  ndar();
+  renderCalendar();
 }
 
 function render() {
-  ndar();
+  renderCalendar();
   renderLista();
 }
 
-function ndar() {
+function renderCalendar() {
   const cal = document.getElementById("calendar");
   const mesLabel = document.getElementById("mesAtual");
 
@@ -164,6 +164,14 @@ function ndar() {
   const hoje = formatKey(new Date());
 
   let dados = JSON.parse(localStorage.getItem("escala")) || [];
+  
+const primeiroDia = new Date(ano, mes, 1).getDay();
+
+for (let i = 0; i < primeiroDia; i++) {
+  const vazio = document.createElement("div");
+  vazio.className = "empty-day"; // opcional
+  cal.appendChild(vazio);
+}
 
   for (let i = 1; i <= dias; i++) {
     const d = new Date(ano, mes, i);
