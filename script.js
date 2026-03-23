@@ -10,14 +10,47 @@ const mesesNome = [
 
 document.getElementById("pdfInput").addEventListener("change", async (e) => {
   const files = e.target.files;
-
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
-    processarTexto(texto);
+    await processarTexto(texto);
   }
-
+  
+  await carregarDados();
   render();
 });
+function login() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider);
+}
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    document.querySelector(".btn-google").style.display = "none";
+    // Só carrega dados depois de logar
+    init();
+  } else {
+    login();
+  }
+});
+
+
+firebase.auth().onAuthStateChanged(user => {
+
+  if (user) {
+  }
+});
+
+async function carregarDados() {
+  const snapshot = await db.collection("escala").get();
+
+  const dados = [];
+
+  snapshot.forEach(doc => {
+    dados.push(doc.data());
+  });
+
+  localStorage.setItem("escala", JSON.stringify(dados));
+}
 
 async function extrairTextoPDF(file) {
   const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
@@ -126,11 +159,8 @@ function calcularArrumar(sairCasa) {
   return d.toTimeString().slice(0,5);
 }
 
-function salvar(dado) {
-  let dados = JSON.parse(localStorage.getItem("escala")) || [];
-  dados = dados.filter(d => d.data !== dado.data);
-  dados.push(dado);
-  localStorage.setItem("escala", JSON.stringify(dados));
+async function salvar(dado) {
+  await db.collection("escala").doc(dado.data).set(dado);
 }
 
 function getStatus(data) {
@@ -358,4 +388,11 @@ function irParaData(dataStr) {
   }
 }
 
-render();
+async function init() {
+  try {
+    await carregarDados();
+    render();
+  } catch (e) {
+    console.error("Erro ao carregar dados:", e);
+  }
+}

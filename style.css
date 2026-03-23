@@ -209,3 +209,33 @@ h1 {
 .week-header div {
   padding: 4px 0;
 }
+
+.btn-google.dark {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #111827;
+  color: #e2e8f0;
+  font-weight: 600;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-google.dark img {
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.btn-google.dark:hover {
+  background: #1f2937;
+  transform: scale(1.02);
+}

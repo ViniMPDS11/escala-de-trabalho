@@ -6,13 +6,17 @@
   <title>Minha Escala</title>
 
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
 <div class="app">
 
   <h1>📅 Minha Escala</h1>
+  
+  <button class="btn-google dark" onclick="login()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
+    Entrar com Google
+  </button>
 
   <label class="upload">
     Importar PDFs
@@ -43,6 +47,30 @@
   <div id="lista"></div>
 
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuxMzfGyzPoq4yO6M8_BCVvnEyT-8XIe4",
+    authDomain: "escala-vinicius-m.firebaseapp.com",
+    projectId: "escala-vinicius-m",
+    storageBucket: "escala-vinicius-m.appspot.com",
+    messagingSenderId: "69262067102",
+    appId: "1:69262067102:web:fc0392b1abaae69009c28f"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+  window.db = firebase.firestore(); // 🔥 ESSENCIAL
+</script>
 
 <script src="script.js"></script>
 </body>
