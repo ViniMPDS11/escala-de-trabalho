@@ -114,24 +114,113 @@ h1 {
 }
 
 /* LISTA */
+#lista {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.28);
+}
+
+.lista-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.lista-titulo {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.lista-subtitulo {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.lista-badge {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.lista-vazia {
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px dashed rgba(148, 163, 184, 0.22);
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.ano-bloco + .ano-bloco {
+  margin-top: 18px;
+}
 
 .ano-header {
-  font-size: 16px;
-  font-weight: bold;
-  margin: 12px 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #f8fafc;
+}
+
+.ano-header::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
 }
 
 .mes-header {
-  background: #1e293b;
-  padding: 10px;
-  border-radius: 10px;
-  font-weight: bold;
-  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  margin-top: 8px;
+  border: 1px solid rgba(51, 65, 85, 0.95);
+  color: #e2e8f0;
+  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
+}
+
+.mes-header::after {
+  content: "▾";
+  color: #60a5fa;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.mes-header.aberto::after {
+  transform: rotate(180deg);
 }
 
 .mes-conteudo {
   display: none;
-  margin-top: 8px;
+  margin-top: 10px;
+  padding: 4px 2px 2px;
 }
 
 .mes-conteudo.ativo {
@@ -140,11 +229,12 @@ h1 {
 
 /* CARDS */
 .card {
-  background: #1e293b;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  border: 1px solid #334155;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.96));
+  padding: 14px;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.18);
 }
 
 .card.flash {
@@ -238,4 +328,96 @@ h1 {
 .btn-google.dark:hover {
   background: #1f2937;
   transform: scale(1.02);
+}
+.card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.card-badge.trabalho {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.card-badge.folga {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.card-linha {
+  font-size: 13px;
+  color: #cbd5e1;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(51, 65, 85, 0.55);
+}
+
+.card-linha strong {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.folga {
+  text-align: center;
+  color: #cbd5e1;
+  font-style: normal;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 10px;
+  }
+
+  #lista {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .lista-topo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lista-badge {
+    align-self: flex-start;
+  }
+
+  .mes-header {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
 }

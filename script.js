@@ -236,11 +236,24 @@ for (let i = 0; i < primeiroDia; i++) {
 
 function renderLista() {
   const lista = document.getElementById("lista");
-  lista.innerHTML = "";
 
   let dados = JSON.parse(localStorage.getItem("escala") || "[]");
-
   dados.sort((a,b)=> new Date(a.data) - new Date(b.data));
+
+  lista.innerHTML = `
+    <div class="lista-topo">
+      <div>
+        <div class="lista-titulo">Próximos detalhes da escala</div>
+        <div class="lista-subtitulo">Visual otimizado para leitura rápida no celular.</div>
+      </div>
+      <div class="lista-badge">${dados.length} registro${dados.length === 1 ? "" : "s"}</div>
+    </div>
+  `;
+
+  if (!dados.length) {
+    lista.innerHTML += '<div class="lista-vazia">Nenhum registro encontrado. Importe um PDF para preencher sua escala.</div>';
+    return;
+  }
 
   const hoje = formatKey(new Date());
 
@@ -263,12 +276,14 @@ function renderLista() {
   });
 
   Object.keys(agrupado).forEach(ano => {
+    const anoBloco = document.createElement("section");
+    anoBloco.className = "ano-bloco";
 
     const anoHeader = document.createElement("div");
     anoHeader.className = "ano-header";
     anoHeader.innerText = ano;
 
-    lista.appendChild(anoHeader);
+    anoBloco.appendChild(anoHeader);
 
     Object.keys(agrupado[ano]).forEach(mes => {
 
@@ -285,6 +300,7 @@ function renderLista() {
 
       if (ano == new Date().getFullYear() && mes == new Date().getMonth()) {
         conteudo.classList.add("ativo");
+        mesHeader.classList.add("aberto");
       }
 
       agrupado[ano][mes].forEach(d => {
@@ -297,32 +313,46 @@ function renderLista() {
 
         if (d.status === "FOLGA") {
           div.innerHTML = `
-            <div class="card-data">${formatarData(d.data)}</div>
-            <div class="card-linha folga">Folga</div>
+            <div class="card-topo">
+              <div class="card-data">${formatarData(d.data)}</div>
+              <div class="card-badge folga">Folga</div>
+            </div>
+            <div class="card-linha folga">Dia livre para descansar ou planejar a próxima jornada.</div>
           `;
         } else {
           div.innerHTML = `
-            <div class="card-data">${formatarData(d.data)}</div>
-            <div class="card-linha">Entrada: ${d.entrada}</div>
-            <div class="card-linha">Saída: ${d.saida}</div>
-            <div class="card-linha">Local: ${d.local}</div>
-            <div class="card-linha">Monitor: ${d.monitor}</div>
-            <div class="card-linha">Sair: ${d.sairCasa}</div>
-            <div class="card-linha">Arrumar: ${d.arrumar}</div>
+            <div class="card-topo">
+              <div class="card-data">${formatarData(d.data)}</div>
+              <div class="card-badge trabalho">Trabalho</div>
+            </div>
+            <div class="card-grid">
+              <div class="card-linha"><strong>Entrada</strong>${d.entrada}</div>
+              <div class="card-linha"><strong>Saída</strong>${d.saida}</div>
+              <div class="card-linha"><strong>Local</strong>${d.local}</div>
+              <div class="card-linha"><strong>Monitor</strong>${d.monitor}</div>
+              <div class="card-linha"><strong>Sair de casa</strong>${d.sairCasa}</div>
+              <div class="card-linha"><strong>Começar a arrumar</strong>${d.arrumar}</div>
+            </div>
           `;
         }
 
         conteudo.appendChild(div);
       });
 
-      lista.appendChild(mesHeader);
-      lista.appendChild(conteudo);
+      anoBloco.appendChild(mesHeader);
+      anoBloco.appendChild(conteudo);
     });
+
+    lista.appendChild(anoBloco);
   });
 }
 
 function toggleMes(id) {
-  document.getElementById(id).classList.toggle("ativo");
+  const conteudo = document.getElementById(id);
+  const header = conteudo?.previousElementSibling;
+
+  conteudo.classList.toggle("ativo");
+  header?.classList.toggle("aberto", conteudo.classList.contains("ativo"));
 }
 
 function formatarData(data) {
