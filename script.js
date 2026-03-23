@@ -15,11 +15,11 @@ pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
 
   if (!files.length) {
-    uploadHint.innerText = "Envie um ou mais arquivos da escala";
+    uploadHint.innerText = "Toque para importar um ou mais arquivos";
     return;
   }
 
-  uploadHint.innerText = `${files.length} PDF${files.length > 1 ? "s" : ""} pronto${files.length > 1 ? "s" : ""} para importar`;
+  uploadHint.innerText = `${files.length} arquivo${files.length > 1 ? "s" : ""} selecionado${files.length > 1 ? "s" : ""}`;
 
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
@@ -44,12 +44,6 @@ firebase.auth().onAuthStateChanged(user => {
   }
 });
 
-
-firebase.auth().onAuthStateChanged(user => {
-
-  if (user) {
-  }
-});
 
 async function carregarDados() {
   const snapshot = await db.collection("escala").get();
@@ -190,12 +184,6 @@ function render() {
   renderLista();
 }
 
-function getStatusLabel(status) {
-  if (status === "WORK") return "Plantão";
-  if (status === "OFF") return "Folga";
-  return "Livre";
-}
-
 function renderCalendar() {
   const cal = document.getElementById("calendar");
   const mesLabel = document.getElementById("mesAtual");
@@ -211,14 +199,14 @@ function renderCalendar() {
   const hoje = formatKey(new Date());
 
   let dados = JSON.parse(localStorage.getItem("escala")) || [];
-  
-const primeiroDia = new Date(ano, mes, 1).getDay();
 
-for (let i = 0; i < primeiroDia; i++) {
-  const vazio = document.createElement("div");
-  vazio.className = "empty-day"; // opcional
-  cal.appendChild(vazio);
-}
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+
+  for (let i = 0; i < primeiroDia; i++) {
+    const vazio = document.createElement("div");
+    vazio.className = "empty-day";
+    cal.appendChild(vazio);
+  }
 
   for (let i = 1; i <= dias; i++) {
     const d = new Date(ano, mes, i);
@@ -239,9 +227,10 @@ for (let i = 0; i < primeiroDia; i++) {
     else div.classList.add("none-day");
 
     div.innerHTML = `
-      <div class="day-num">${i}</div>
-      <div class="day-status">${getStatusLabel(status)}</div>
-      ${registro ? `<div class="dot"></div>` : ""}
+      <div class="day-topo">
+        <div class="day-num">${i}</div>
+        ${registro ? `<div class="dot"></div>` : ""}
+      </div>
       <div class="day-info">
         ${registro?.local || ""}
         ${registro?.entrada ? `<br>${registro.entrada}` : ""}
@@ -262,7 +251,7 @@ function renderLista() {
     <div class="lista-topo">
       <div>
         <div class="lista-titulo">Próximos detalhes da escala</div>
-        <div class="lista-subtitulo">Visual otimizado para leitura rápida no celular.</div>
+        <div class="lista-subtitulo">Toque em um mês para ver os dias.</div>
       </div>
       <div class="lista-badge">${dados.length} registro${dados.length === 1 ? "" : "s"}</div>
     </div>
@@ -316,8 +305,6 @@ function renderLista() {
       conteudo.className = "mes-conteudo";
       conteudo.id = mesId;
 
-      const mesInner = document.createElement("div");
-      mesInner.className = "mes-inner";
 
       if (ano == new Date().getFullYear() && mes == new Date().getMonth()) {
         conteudo.classList.add("ativo");
@@ -357,10 +344,9 @@ function renderLista() {
           `;
         }
 
-        mesInner.appendChild(div);
+        conteudo.appendChild(div);
       });
 
-      conteudo.appendChild(mesInner);
 
       anoBloco.appendChild(mesHeader);
       anoBloco.appendChild(conteudo);

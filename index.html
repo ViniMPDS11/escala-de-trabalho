@@ -12,9 +12,8 @@
 <div class="app">
 
   <section class="hero">
-    <div class="eyebrow">Escala mobile first</div>
-    <h1>📅 Minha Escala</h1>
-    <p class="hero-subtitle">Acompanhe plantões, folgas e horários com uma interface mais leve para usar no celular.</p>
+    <h1>Escala de Trabalho</h1>
+    <p class="hero-subtitle">Consulte sua escala.</p>
   </section>
 
   <div class="quick-actions">
@@ -22,15 +21,15 @@
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       <span class="btn-copy">
         <span>Entrar com Google</span>
-        <small>Sincronize sua escala em segundos</small>
+        <small>Acesse seus dados</small>
       </span>
     </button>
 
     <label class="upload">
-      <span class="upload-icon">⬆</span>
+      <span class="upload-icon">📄</span>
       <span class="btn-copy">
-        <span class="upload-text">Carregar PDFs</span>
-        <small id="uploadHint">Envie um ou mais arquivos da escala</small>
+        <span class="upload-text">Carregar PDF</span>
+        <small id="uploadHint">Toque para importar um ou mais arquivos</small>
       </span>
       <input type="file" id="pdfInput" multiple hidden>
     </label>
@@ -40,21 +39,21 @@
 
   <section class="calendar-shell">
     <div class="mes-controle">
-    <button onclick="mudarMes(-1)">‹</button>
-    <span id="mesAtual"></span>
-    <button onclick="mudarMes(1)">›</button>
-  </div>
+      <button onclick="mudarMes(-1)">‹</button>
+      <span id="mesAtual"></span>
+      <button onclick="mudarMes(1)">›</button>
+    </div>
 
-  <div class="week-header">
-    <div>DOM</div>
-    <div>SEG</div>
-    <div>TER</div>
-    <div>QUA</div>
-    <div>QUI</div>
-    <div>SEX</div>
-    <div>SAB</div>
-  </div>
-  <div id="calendar"></div>
+    <div class="week-header">
+      <div>DOM</div>
+      <div>SEG</div>
+      <div>TER</div>
+      <div>QUA</div>
+      <div>QUI</div>
+      <div>SEX</div>
+      <div>SAB</div>
+    </div>
+    <div id="calendar"></div>
 
   </section>
 
