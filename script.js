@@ -305,6 +305,8 @@ function renderLista() {
       conteudo.className = "mes-conteudo";
       conteudo.id = mesId;
 
+      const mesInner = document.createElement("div");
+      mesInner.className = "mes-inner";
 
       if (ano == new Date().getFullYear() && mes == new Date().getMonth()) {
         conteudo.classList.add("ativo");
@@ -344,9 +346,11 @@ function renderLista() {
           `;
         }
 
-        conteudo.appendChild(div);
+        mesInner.appendChild(div);
       });
 
+
+      conteudo.appendChild(mesInner);
 
       anoBloco.appendChild(mesHeader);
       anoBloco.appendChild(conteudo);
