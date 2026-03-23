@@ -8,8 +8,19 @@ const mesesNome = [
   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
 ];
 
-document.getElementById("pdfInput").addEventListener("change", async (e) => {
-  const files = e.target.files;
+const pdfInput = document.getElementById("pdfInput");
+const uploadHint = document.getElementById("uploadHint");
+
+pdfInput.addEventListener("change", async (e) => {
+  const files = [...e.target.files];
+
+  if (!files.length) {
+    uploadHint.innerText = "Envie um ou mais arquivos da escala";
+    return;
+  }
+
+  uploadHint.innerText = `${files.length} PDF${files.length > 1 ? "s" : ""} pronto${files.length > 1 ? "s" : ""} para importar`;
+
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
     await processarTexto(texto);
@@ -179,6 +190,12 @@ function render() {
   renderLista();
 }
 
+function getStatusLabel(status) {
+  if (status === "WORK") return "Plantão";
+  if (status === "OFF") return "Folga";
+  return "Livre";
+}
+
 function renderCalendar() {
   const cal = document.getElementById("calendar");
   const mesLabel = document.getElementById("mesAtual");
@@ -223,6 +240,7 @@ for (let i = 0; i < primeiroDia; i++) {
 
     div.innerHTML = `
       <div class="day-num">${i}</div>
+      <div class="day-status">${getStatusLabel(status)}</div>
       ${registro ? `<div class="dot"></div>` : ""}
       <div class="day-info">
         ${registro?.local || ""}
@@ -298,6 +316,9 @@ function renderLista() {
       conteudo.className = "mes-conteudo";
       conteudo.id = mesId;
 
+      const mesInner = document.createElement("div");
+      mesInner.className = "mes-inner";
+
       if (ano == new Date().getFullYear() && mes == new Date().getMonth()) {
         conteudo.classList.add("ativo");
         mesHeader.classList.add("aberto");
@@ -336,8 +357,10 @@ function renderLista() {
           `;
         }
 
-        conteudo.appendChild(div);
+        mesInner.appendChild(div);
       });
+
+      conteudo.appendChild(mesInner);
 
       anoBloco.appendChild(mesHeader);
       anoBloco.appendChild(conteudo);
@@ -350,6 +373,8 @@ function renderLista() {
 function toggleMes(id) {
   const conteudo = document.getElementById(id);
   const header = conteudo?.previousElementSibling;
+
+  if (!conteudo) return;
 
   conteudo.classList.toggle("ativo");
   header?.classList.toggle("aberto", conteudo.classList.contains("ativo"));
@@ -365,13 +390,17 @@ function irParaHoje() {
   const key = formatKey(hoje);
 
   document.querySelectorAll(".mes-conteudo")
-    .forEach(el => el.classList.remove("ativo"));
+    .forEach(el => {
+      el.classList.remove("ativo");
+      el.previousElementSibling?.classList.remove("aberto");
+    });
 
   const mesAtualId = `mes-${hoje.getFullYear()}-${hoje.getMonth()}`;
   const mesAtual = document.getElementById(mesAtualId);
 
   if (mesAtual) {
     mesAtual.classList.add("ativo");
+    mesAtual.previousElementSibling?.classList.add("aberto");
 
     setTimeout(() => {
       const el = document.getElementById("dia-" + key);
@@ -390,13 +419,17 @@ function irParaData(dataStr) {
 
   // fecha todos os meses
   document.querySelectorAll(".mes-conteudo")
-    .forEach(el => el.classList.remove("ativo"));
+    .forEach(el => {
+      el.classList.remove("ativo");
+      el.previousElementSibling?.classList.remove("aberto");
+    });
 
   const mesId = `mes-${ano}-${Number(mes) - 1}`;
   const mesEl = document.getElementById(mesId);
 
   if (mesEl) {
     mesEl.classList.add("ativo");
+    mesEl.previousElementSibling?.classList.add("aberto");
 
     setTimeout(() => {
       const el = document.getElementById("dia-" + dataStr);

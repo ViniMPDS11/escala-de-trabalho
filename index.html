@@ -11,21 +11,35 @@
 
 <div class="app">
 
-  <h1>📅 Minha Escala</h1>
-  
-  <button class="btn-google dark" onclick="login()">
-    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
-    Entrar com Google
-  </button>
+  <section class="hero">
+    <div class="eyebrow">Escala mobile first</div>
+    <h1>📅 Minha Escala</h1>
+    <p class="hero-subtitle">Acompanhe plantões, folgas e horários com uma interface mais leve para usar no celular.</p>
+  </section>
 
-  <label class="upload">
-    Importar PDFs
-    <input type="file" id="pdfInput" multiple hidden>
-  </label>
+  <div class="quick-actions">
+    <button class="btn-google dark" onclick="login()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      <span class="btn-copy">
+        <span>Entrar com Google</span>
+        <small>Sincronize sua escala em segundos</small>
+      </span>
+    </button>
+
+    <label class="upload">
+      <span class="upload-icon">⬆</span>
+      <span class="btn-copy">
+        <span class="upload-text">Carregar PDFs</span>
+        <small id="uploadHint">Envie um ou mais arquivos da escala</small>
+      </span>
+      <input type="file" id="pdfInput" multiple hidden>
+    </label>
+  </div>
 
   <p class="legenda">Base 6x2 desde 11/03/2026</p>
 
-  <div class="mes-controle">
+  <section class="calendar-shell">
+    <div class="mes-controle">
     <button onclick="mudarMes(-1)">‹</button>
     <span id="mesAtual"></span>
     <button onclick="mudarMes(1)">›</button>
@@ -42,7 +56,9 @@
   </div>
   <div id="calendar"></div>
 
-  <button class="btn-hoje" onclick="irParaHoje()">Hoje</button>
+  </section>
+
+  <button class="btn-hoje" onclick="irParaHoje()">Ir para hoje</button>
 
   <div id="lista"></div>
 
