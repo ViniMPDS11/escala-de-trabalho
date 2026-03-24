@@ -16,6 +16,7 @@ const defaultConfig = {
 const defaultUserConfig = {
   nomeUsuario: ""
 };
+const perfilCollections = ["perfis", "perfil"];
 
 let configAtual = carregarConfigLocal();
 let userConfigAtual = carregarUserConfigLocal();
@@ -103,9 +104,10 @@ function login() {
   firebase.auth().signInWithPopup(provider);
 }
 
-firebase.auth().onAuthStateChanged(user => {
+firebase.auth().onAuthStateChanged(async (user) => {
   if (user) {
     document.querySelector(".btn-google").style.display = "none";
+    await sincronizarNomeUsuarioAoEntrar(user);
     init();
   } else {
     login();
@@ -240,26 +242,57 @@ async function obterNomeUsuarioDoPerfil() {
   const user = firebase.auth().currentUser;
   if (!user) return "";
 
-  try {
-    const perfilDoc = await db.collection("perfis").doc(user.uid).get();
-    return (perfilDoc.data()?.nomeUsuario || "").trim();
-  } catch (erro) {
-    console.warn("Não foi possível buscar nome no perfil:", erro);
-    return "";
+  for (const collectionName of perfilCollections) {
+    try {
+      const perfilDoc = await db.collection(collectionName).doc(user.uid).get();
+      const nomeUsuario = (perfilDoc.data()?.nomeUsuario || "").trim();
+
+      if (nomeUsuario) return nomeUsuario;
+    } catch (erro) {
+      console.warn(`Não foi possível buscar nome no perfil (${collectionName}):`, erro);
+    }
   }
+
+  return "";
+}
+
+async function sincronizarNomeUsuarioAoEntrar(user) {
+  const nomeLocal = (userConfigAtual.nomeUsuario || "").trim();
+
+  if (nomeLocal) {
+    await salvarNomeUsuarioNoPerfil(nomeLocal);
+    return;
+  }
+
+  const nomePerfil = await obterNomeUsuarioDoPerfil();
+
+  if (nomePerfil) {
+    userConfigAtual = { nomeUsuario: nomePerfil };
+    salvarUserConfigLocal(userConfigAtual);
+    return;
+  }
+
+  const nomeAuth = (user.displayName || "").trim();
+  if (!nomeAuth) return;
+
+  userConfigAtual = { nomeUsuario: nomeAuth };
+  salvarUserConfigLocal(userConfigAtual);
+  await salvarNomeUsuarioNoPerfil(nomeAuth);
 }
 
 async function salvarNomeUsuarioNoPerfil(nomeUsuario) {
   const user = firebase.auth().currentUser;
   if (!user) return;
 
-  try {
-    await db.collection("perfis").doc(user.uid).set(
-      { nomeUsuario: (nomeUsuario || "").trim() },
-      { merge: true }
-    );
-  } catch (erro) {
-    console.warn("Não foi possível salvar nome no perfil:", erro);
+  for (const collectionName of perfilCollections) {
+    try {
+      await db.collection(collectionName).doc(user.uid).set(
+        { nomeUsuario: (nomeUsuario || "").trim() },
+        { merge: true }
+      );
+    } catch (erro) {
+      console.warn(`Não foi possível salvar nome no perfil (${collectionName}):`, erro);
+    }
   }
 }
 
