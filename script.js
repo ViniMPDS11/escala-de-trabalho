@@ -584,9 +584,9 @@ function irParaData(dataStr) {
   }
 }
 
-async function abrirConfiguracoes() {
+function abrirConfiguracoes() {
   preencherFormularioConfiguracao();
-  await atualizarInfoNomeAtual();
+  atualizarInfoNomeAtual();
   settingsModal.classList.add("aberto");
   settingsModal.setAttribute("aria-hidden", "false");
 }
@@ -656,10 +656,24 @@ function preencherFormularioConfiguracao() {
 }
 
 async function atualizarInfoNomeAtual() {
-  const nomePerfil = await obterNomeUsuarioDoPerfil();
+  if (!nomeAtualPerfilInfo) return;
+
   const nomeLocal = (userConfigAtual.nomeUsuario || "").trim();
 
-  if (nomePerfil) {
+  nomeAtualPerfilInfo.innerText = nomeLocal
+    ? `Nome atual (local): ${nomeLocal}`
+    : "Nome atual no perfil: buscando...";
+
+  const timeoutBuscaPerfil = new Promise((resolve) => {
+    setTimeout(() => resolve("__timeout__"), 2500);
+  });
+
+  const nomePerfil = await Promise.race([
+    obterNomeUsuarioDoPerfil(),
+    timeoutBuscaPerfil
+  ]);
+
+  if (nomePerfil && nomePerfil !== "__timeout__") {
     nomeAtualPerfilInfo.innerText = `Nome atual no perfil: ${nomePerfil}`;
     return;
   }
