@@ -55,6 +55,29 @@ button {
   margin-bottom: 14px;
 }
 
+.hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-config {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 1));
+  color: #f8fafc;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(2, 6, 23, 0.26);
+}
+
+.btn-config:hover {
+  transform: translateY(-1px);
+}
+
 h1 {
   font-size: clamp(1.9rem, 6vw, 2.35rem);
   line-height: 1.05;
@@ -233,7 +256,10 @@ h1 {
 .btn-google:active,
 .upload:active,
 .mes-controle button:active,
-.btn-hoje:active {
+.btn-hoje:active,
+.btn-config:active,
+.settings-close:active,
+.btn-salvar-config:active {
   transform: scale(0.98);
 }
 
@@ -554,6 +580,133 @@ h1 {
 
 .card.today .card-badge {
   background: rgba(34, 197, 94, 0.18);
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.68);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 20;
+}
+
+.settings-modal.aberto {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-dialog {
+  width: min(500px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 1), rgba(30, 41, 59, 0.98));
+  padding: 16px;
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.5);
+}
+
+.settings-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-topo h2 {
+  font-size: 18px;
+}
+
+.settings-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.settings-desc {
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.settings-grid {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.settings-row {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.settings-row strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.time-inputs {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.time-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.time-inputs input {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.6);
+  color: #f8fafc;
+  padding: 10px 8px;
+  font: inherit;
+}
+
+.toggle-retroativa {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.toggle-retroativa input {
+  margin-top: 2px;
+}
+
+.btn-salvar-config {
+  margin-top: 14px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  padding: 11px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-salvar-config:disabled {
+  opacity: 0.8;
+  cursor: wait;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -12,7 +12,10 @@
 <div class="app">
 
   <section class="hero">
-    <h1>Escala de Trabalho</h1>
+    <div class="hero-header">
+      <h1>Escala de Trabalho</h1>
+      <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
+    </div>
     <p class="hero-subtitle">Consulte sua escala.</p>
   </section>
 
@@ -34,7 +37,6 @@
       <input type="file" id="pdfInput" multiple hidden>
     </label>
   </div>
-
 
   <section class="calendar-shell">
     <div class="mes-controle">
@@ -61,6 +63,51 @@
   <div id="lista"></div>
 
 </div>
+
+<div class="settings-modal" id="settingsModal" aria-hidden="true">
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-topo">
+      <h2 id="settingsTitle">Configurações</h2>
+      <button class="settings-close" id="closeSettings" type="button" aria-label="Fechar configurações">✕</button>
+    </div>
+
+    <p class="settings-desc">Ajuste os descontos para calcular os horários automaticamente.</p>
+
+    <div class="settings-grid">
+      <div class="settings-row">
+        <strong>Descontar da entrada para sair de casa (EGO)</strong>
+        <div class="time-inputs">
+          <label>Horas <input type="number" id="egoHours" min="0" max="23"></label>
+          <label>Minutos <input type="number" id="egoMinutes" min="0" max="59"></label>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <strong>Descontar da entrada para sair de casa (BAS)</strong>
+        <div class="time-inputs">
+          <label>Horas <input type="number" id="basHours" min="0" max="23"></label>
+          <label>Minutos <input type="number" id="basMinutes" min="0" max="59"></label>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <strong>Descontar de sair de casa para começar a se arrumar</strong>
+        <div class="time-inputs">
+          <label>Horas <input type="number" id="arrumarHours" min="0" max="23"></label>
+          <label>Minutos <input type="number" id="arrumarMinutes" min="0" max="59"></label>
+        </div>
+      </div>
+    </div>
+
+    <label class="toggle-retroativa" for="applyRetroactive">
+      <input type="checkbox" id="applyRetroactive">
+      <span>Atualizar também os registros antigos já salvos.</span>
+    </label>
+
+    <button class="btn-salvar-config" id="saveSettings" type="button">Confirmar configurações</button>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
@@ -83,7 +130,7 @@
 
   firebase.initializeApp(firebaseConfig);
 
-  window.db = firebase.firestore(); // 🔥 ESSENCIAL
+  window.db = firebase.firestore();
 </script>
 
 <script src="script.js"></script>

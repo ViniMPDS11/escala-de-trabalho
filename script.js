@@ -4,12 +4,33 @@ const inicio = new Date(2026, 2, 11);
 let dataAtual = new Date();
 
 const mesesNome = [
-  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
+
+const defaultConfig = {
+  egoOffsetMin: 100,
+  basOffsetMin: 70,
+  arrumarOffsetMin: 60
+};
+
+let configAtual = carregarConfigLocal();
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
+
+const settingsModal = document.getElementById("settingsModal");
+const openSettingsBtn = document.getElementById("openSettings");
+const closeSettingsBtn = document.getElementById("closeSettings");
+const saveSettingsBtn = document.getElementById("saveSettings");
+const applyRetroactiveInput = document.getElementById("applyRetroactive");
+
+const egoHoursInput = document.getElementById("egoHours");
+const egoMinutesInput = document.getElementById("egoMinutes");
+const basHoursInput = document.getElementById("basHours");
+const basMinutesInput = document.getElementById("basMinutes");
+const arrumarHoursInput = document.getElementById("arrumarHours");
+const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -25,10 +46,46 @@ pdfInput.addEventListener("change", async (e) => {
     const texto = await extrairTextoPDF(file);
     await processarTexto(texto);
   }
-  
+
   await carregarDados();
   render();
 });
+
+openSettingsBtn.addEventListener("click", abrirConfiguracoes);
+closeSettingsBtn.addEventListener("click", fecharConfiguracoes);
+
+settingsModal.addEventListener("click", (e) => {
+  if (e.target === settingsModal) {
+    fecharConfiguracoes();
+  }
+});
+
+saveSettingsBtn.addEventListener("click", async () => {
+  const novaConfig = lerConfigDoFormulario();
+
+  if (!novaConfig) return;
+
+  salvarConfigLocal(novaConfig);
+  configAtual = novaConfig;
+
+  const aplicarRetroativo = applyRetroactiveInput.checked;
+
+  saveSettingsBtn.disabled = true;
+  saveSettingsBtn.innerText = aplicarRetroativo ? "Atualizando registros..." : "Salvando...";
+
+  if (aplicarRetroativo) {
+    await recalcularRegistrosAntigos();
+  }
+
+  await carregarDados();
+  render();
+
+  saveSettingsBtn.disabled = false;
+  saveSettingsBtn.innerText = "Confirmar configurações";
+
+  fecharConfiguracoes();
+});
+
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider);
@@ -37,13 +94,11 @@ function login() {
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
     document.querySelector(".btn-google").style.display = "none";
-    // Só carrega dados depois de logar
     init();
   } else {
     login();
   }
 });
-
 
 async function carregarDados() {
   const snapshot = await db.collection("escala").get();
@@ -80,8 +135,8 @@ function criarDataLocal(yyyy, mm, dd) {
 
 function formatKey(date) {
   return date.getFullYear() + "-" +
-    String(date.getMonth()+1).padStart(2,"0") + "-" +
-    String(date.getDate()).padStart(2,"0");
+    String(date.getMonth() + 1).padStart(2, "0") + "-" +
+    String(date.getDate()).padStart(2, "0");
 }
 
 function processarTexto(texto) {
@@ -110,9 +165,8 @@ function processarTexto(texto) {
   const saida = horas[1] || "-";
 
   let local = trecho.includes("BAS") ? "BAS" :
-              trecho.includes("EGO") ? "EGO" : "-";
+    trecho.includes("EGO") ? "EGO" : "-";
 
-  /* 🔥 MONITOR (SEU MÉTODO ORIGINAL CORRETO) */
   let monitor = "-";
 
   const match = trecho.match(/(BAS|EGO)\s+\w+\s+([A-Z\s]+)/);
@@ -148,10 +202,10 @@ function calcularSaidaCasa(entrada, local) {
   let d = new Date();
   d.setHours(h, m);
 
-  if (local === "BAS") d.setMinutes(d.getMinutes() - 70);
-  if (local === "EGO") d.setMinutes(d.getMinutes() - 100);
+  if (local === "BAS") d.setMinutes(d.getMinutes() - configAtual.basOffsetMin);
+  if (local === "EGO") d.setMinutes(d.getMinutes() - configAtual.egoOffsetMin);
 
-  return d.toTimeString().slice(0,5);
+  return d.toTimeString().slice(0, 5);
 }
 
 function calcularArrumar(sairCasa) {
@@ -159,9 +213,31 @@ function calcularArrumar(sairCasa) {
 
   let [h, m] = sairCasa.split(":").map(Number);
   let d = new Date();
-  d.setHours(h, m - 60);
+  d.setHours(h, m - configAtual.arrumarOffsetMin);
 
-  return d.toTimeString().slice(0,5);
+  return d.toTimeString().slice(0, 5);
+}
+
+async function recalcularRegistrosAntigos() {
+  const snapshot = await db.collection("escala").where("status", "==", "TRABALHO").get();
+  const atualizacoes = [];
+
+  snapshot.forEach((doc) => {
+    const dado = doc.data();
+
+    const novoSairCasa = calcularSaidaCasa(dado.entrada || "-", dado.local || "-");
+    const novoArrumar = calcularArrumar(novoSairCasa);
+
+    atualizacoes.push(
+      db.collection("escala").doc(doc.id).set({
+        ...dado,
+        sairCasa: novoSairCasa,
+        arrumar: novoArrumar
+      })
+    );
+  });
+
+  await Promise.all(atualizacoes);
 }
 
 async function salvar(dado) {
@@ -195,7 +271,7 @@ function renderCalendar() {
 
   mesLabel.innerText = `${mesesNome[mes]} de ${ano}`;
 
-  const dias = new Date(ano, mes+1, 0).getDate();
+  const dias = new Date(ano, mes + 1, 0).getDate();
   const hoje = formatKey(new Date());
 
   let dados = JSON.parse(localStorage.getItem("escala")) || [];
@@ -245,7 +321,7 @@ function renderLista() {
   const lista = document.getElementById("lista");
 
   let dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  dados.sort((a,b)=> new Date(a.data) - new Date(b.data));
+  dados.sort((a, b) => new Date(a.data) - new Date(b.data));
 
   lista.innerHTML = `
     <div class="lista-topo">
@@ -268,9 +344,9 @@ function renderLista() {
 
   dados.forEach(d => {
     const date = criarDataLocal(
-      d.data.slice(0,4),
-      d.data.slice(5,7),
-      d.data.slice(8,10)
+      d.data.slice(0, 4),
+      d.data.slice(5, 7),
+      d.data.slice(8, 10)
     );
 
     const ano = date.getFullYear();
@@ -407,7 +483,6 @@ function irParaHoje() {
 function irParaData(dataStr) {
   const [ano, mes] = dataStr.split("-");
 
-  // fecha todos os meses
   document.querySelectorAll(".mes-conteudo")
     .forEach(el => {
       el.classList.remove("ativo");
@@ -428,7 +503,7 @@ function irParaData(dataStr) {
           behavior: "smooth",
           block: "center"
         });
-        // espera o scroll terminar
+
         setTimeout(() => {
           el.classList.add("flash");
 
@@ -439,6 +514,89 @@ function irParaData(dataStr) {
       }
     }, 100);
   }
+}
+
+function abrirConfiguracoes() {
+  preencherFormularioConfiguracao();
+  settingsModal.classList.add("aberto");
+  settingsModal.setAttribute("aria-hidden", "false");
+}
+
+function fecharConfiguracoes() {
+  settingsModal.classList.remove("aberto");
+  settingsModal.setAttribute("aria-hidden", "true");
+  applyRetroactiveInput.checked = false;
+}
+
+function carregarConfigLocal() {
+  const raw = localStorage.getItem("escalaConfig");
+
+  if (!raw) return { ...defaultConfig };
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    return {
+      egoOffsetMin: Number.isFinite(parsed.egoOffsetMin) ? parsed.egoOffsetMin : defaultConfig.egoOffsetMin,
+      basOffsetMin: Number.isFinite(parsed.basOffsetMin) ? parsed.basOffsetMin : defaultConfig.basOffsetMin,
+      arrumarOffsetMin: Number.isFinite(parsed.arrumarOffsetMin) ? parsed.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
+    };
+  } catch {
+    return { ...defaultConfig };
+  }
+}
+
+function salvarConfigLocal(config) {
+  localStorage.setItem("escalaConfig", JSON.stringify(config));
+}
+
+function preencherFormularioConfiguracao() {
+  const ego = paraHoraMinuto(configAtual.egoOffsetMin);
+  const bas = paraHoraMinuto(configAtual.basOffsetMin);
+  const arrumar = paraHoraMinuto(configAtual.arrumarOffsetMin);
+
+  egoHoursInput.value = ego.h;
+  egoMinutesInput.value = ego.m;
+
+  basHoursInput.value = bas.h;
+  basMinutesInput.value = bas.m;
+
+  arrumarHoursInput.value = arrumar.h;
+  arrumarMinutesInput.value = arrumar.m;
+}
+
+function lerConfigDoFormulario() {
+  const egoOffsetMin = paraMinutosTotais(egoHoursInput.value, egoMinutesInput.value);
+  const basOffsetMin = paraMinutosTotais(basHoursInput.value, basMinutesInput.value);
+  const arrumarOffsetMin = paraMinutosTotais(arrumarHoursInput.value, arrumarMinutesInput.value);
+
+  if (egoOffsetMin === null || basOffsetMin === null || arrumarOffsetMin === null) {
+    alert("Preencha horas e minutos com valores válidos.");
+    return null;
+  }
+
+  return {
+    egoOffsetMin,
+    basOffsetMin,
+    arrumarOffsetMin
+  };
+}
+
+function paraHoraMinuto(totalMin) {
+  return {
+    h: Math.floor(totalMin / 60),
+    m: totalMin % 60
+  };
+}
+
+function paraMinutosTotais(horasRaw, minutosRaw) {
+  const horas = Number(horasRaw);
+  const minutos = Number(minutosRaw);
+
+  if (!Number.isInteger(horas) || !Number.isInteger(minutos)) return null;
+  if (horas < 0 || minutos < 0 || minutos > 59 || horas > 23) return null;
+
+  return horas * 60 + minutos;
 }
 
 async function init() {
