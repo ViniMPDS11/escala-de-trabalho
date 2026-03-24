@@ -8,7 +8,7 @@ const mesesNome = [
 ];
 
 const defaultConfig = {
-  nomeUsuario: "VINICIUS MATHEUS",
+  nomeUsuario: "",
   egoOffsetMin: 100,
   basOffsetMin: 70,
   arrumarOffsetMin: 60
@@ -44,6 +44,11 @@ pdfInput.addEventListener("change", async (e) => {
   }
 
   uploadHint.innerText = `${files.length} arquivo${files.length > 1 ? "s" : ""} selecionado${files.length > 1 ? "s" : ""}`;
+
+  if (!configAtual.nomeUsuario) {
+    alert("Configure o nome do usuário antes de importar PDFs.");
+    return;
+  }
 
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
@@ -155,6 +160,7 @@ function processarTexto(texto) {
   const data = formatKey(dateObj);
 
   const nomeUsuarioConfigurado = (configAtual.nomeUsuario || "").trim().toUpperCase();
+  if (!nomeUsuarioConfigurado) return;
   const textoNormalizado = texto.toUpperCase();
   const indexNome = textoNormalizado.indexOf(nomeUsuarioConfigurado);
 
@@ -544,7 +550,7 @@ function carregarConfigLocal() {
     const parsed = JSON.parse(raw);
 
     return {
-      nomeUsuario: typeof parsed.nomeUsuario === "string" && parsed.nomeUsuario.trim() ? parsed.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      nomeUsuario: typeof parsed.nomeUsuario === "string" ? parsed.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
       egoOffsetMin: Number.isFinite(parsed.egoOffsetMin) ? parsed.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(parsed.basOffsetMin) ? parsed.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(parsed.arrumarOffsetMin) ? parsed.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -562,7 +568,7 @@ async function carregarConfigUsuario() {
   if (!usuarioAtual) return { ...defaultConfig };
 
   try {
-    const doc = await db.collection("configuracoes").doc(usuarioAtual.uid).get();
+    const doc = await db.collection("config").doc("user").get();
 
     if (!doc.exists) {
       return { ...configAtual };
@@ -570,7 +576,7 @@ async function carregarConfigUsuario() {
 
     const dados = doc.data() || {};
     const configNormalizada = {
-      nomeUsuario: typeof dados.nomeUsuario === "string" && dados.nomeUsuario.trim() ? dados.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      nomeUsuario: typeof dados.nome === "string" ? dados.nome.trim().toUpperCase() : defaultConfig.nomeUsuario,
       egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -594,7 +600,12 @@ async function salvarConfigUsuario(config) {
 
   if (usuarioAtual) {
     try {
-      await db.collection("configuracoes").doc(usuarioAtual.uid).set(configNormalizada, { merge: true });
+      await db.collection("config").doc("user").set({
+        nome: configNormalizada.nomeUsuario,
+        egoOffsetMin: configNormalizada.egoOffsetMin,
+        basOffsetMin: configNormalizada.basOffsetMin,
+        arrumarOffsetMin: configNormalizada.arrumarOffsetMin
+      }, { merge: true });
     } catch (erro) {
       console.warn("Não foi possível salvar configurações no banco. Configuração salva localmente.", erro);
     }
@@ -605,7 +616,7 @@ async function salvarConfigUsuario(config) {
 
 function preencherFormularioConfiguracao() {
   nomeUsuarioInput.value = configAtual.nomeUsuario;
-  nomeAtualConfiguradoSpan.innerText = configAtual.nomeUsuario;
+  nomeAtualConfiguradoSpan.innerText = obterNomeExibicao(configAtual.nomeUsuario);
 
   const ego = paraHoraMinuto(configAtual.egoOffsetMin);
   const bas = paraHoraMinuto(configAtual.basOffsetMin);
@@ -627,11 +638,6 @@ function lerConfigDoFormulario() {
   const basOffsetMin = paraMinutosTotais(basHoursInput.value, basMinutesInput.value);
   const arrumarOffsetMin = paraMinutosTotais(arrumarHoursInput.value, arrumarMinutesInput.value);
 
-  if (!nomeUsuario) {
-    alert("Informe o nome usado para buscar nos PDFs.");
-    return null;
-  }
-
   if (egoOffsetMin === null || basOffsetMin === null || arrumarOffsetMin === null) {
     alert("Preencha horas e minutos com valores válidos.");
     return null;
@@ -643,6 +649,10 @@ function lerConfigDoFormulario() {
     basOffsetMin,
     arrumarOffsetMin
   };
+}
+
+function obterNomeExibicao(nome) {
+  return nome ? nome : "(sem nome configurado)";
 }
 
 function paraHoraMinuto(totalMin) {
