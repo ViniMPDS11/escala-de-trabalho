@@ -1,4 +1,3 @@
-const nomeUsuario = "VINICIUS MATHEUS";
 const inicio = new Date(2026, 2, 11);
 
 let dataAtual = new Date();
@@ -9,12 +8,14 @@ const mesesNome = [
 ];
 
 const defaultConfig = {
+  nomeUsuario: "VINICIUS MATHEUS",
   egoOffsetMin: 100,
   basOffsetMin: 70,
   arrumarOffsetMin: 60
 };
 
 let configAtual = carregarConfigLocal();
+let usuarioAtual = null;
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
@@ -31,6 +32,8 @@ const basHoursInput = document.getElementById("basHours");
 const basMinutesInput = document.getElementById("basMinutes");
 const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
+const nomeUsuarioInput = document.getElementById("nomeUsuario");
+const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -65,7 +68,7 @@ saveSettingsBtn.addEventListener("click", async () => {
 
   if (!novaConfig) return;
 
-  salvarConfigLocal(novaConfig);
+  await salvarConfigUsuario(novaConfig);
   configAtual = novaConfig;
 
   const aplicarRetroativo = applyRetroactiveInput.checked;
@@ -93,9 +96,11 @@ function login() {
 
 firebase.auth().onAuthStateChanged(user => {
   if (user) {
+    usuarioAtual = user;
     document.querySelector(".btn-google").style.display = "none";
     init();
   } else {
+    usuarioAtual = null;
     login();
   }
 });
@@ -149,7 +154,9 @@ function processarTexto(texto) {
   const dateObj = criarDataLocal(ano, Number(mes), Number(dia));
   const data = formatKey(dateObj);
 
-  const indexNome = texto.indexOf(nomeUsuario);
+  const nomeUsuarioConfigurado = (configAtual.nomeUsuario || "").trim().toUpperCase();
+  const textoNormalizado = texto.toUpperCase();
+  const indexNome = textoNormalizado.indexOf(nomeUsuarioConfigurado);
 
   if (indexNome === -1) {
     salvar({ data, status: "FOLGA" });
@@ -537,6 +544,7 @@ function carregarConfigLocal() {
     const parsed = JSON.parse(raw);
 
     return {
+      nomeUsuario: typeof parsed.nomeUsuario === "string" && parsed.nomeUsuario.trim() ? parsed.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
       egoOffsetMin: Number.isFinite(parsed.egoOffsetMin) ? parsed.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(parsed.basOffsetMin) ? parsed.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(parsed.arrumarOffsetMin) ? parsed.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -550,7 +558,47 @@ function salvarConfigLocal(config) {
   localStorage.setItem("escalaConfig", JSON.stringify(config));
 }
 
+async function carregarConfigUsuario() {
+  if (!usuarioAtual) return { ...defaultConfig };
+
+  const doc = await db.collection("configuracoes").doc(usuarioAtual.uid).get();
+
+  if (!doc.exists) {
+    await salvarConfigUsuario({ ...defaultConfig });
+    return { ...defaultConfig };
+  }
+
+  const dados = doc.data() || {};
+  const configNormalizada = {
+    nomeUsuario: typeof dados.nomeUsuario === "string" && dados.nomeUsuario.trim() ? dados.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+    egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
+    basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
+    arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
+  };
+
+  salvarConfigLocal(configNormalizada);
+  return configNormalizada;
+}
+
+async function salvarConfigUsuario(config) {
+  const configNormalizada = {
+    nomeUsuario: (config.nomeUsuario || "").trim().toUpperCase(),
+    egoOffsetMin: config.egoOffsetMin,
+    basOffsetMin: config.basOffsetMin,
+    arrumarOffsetMin: config.arrumarOffsetMin
+  };
+
+  if (usuarioAtual) {
+    await db.collection("configuracoes").doc(usuarioAtual.uid).set(configNormalizada, { merge: true });
+  }
+
+  salvarConfigLocal(configNormalizada);
+}
+
 function preencherFormularioConfiguracao() {
+  nomeUsuarioInput.value = configAtual.nomeUsuario;
+  nomeAtualConfiguradoSpan.innerText = configAtual.nomeUsuario;
+
   const ego = paraHoraMinuto(configAtual.egoOffsetMin);
   const bas = paraHoraMinuto(configAtual.basOffsetMin);
   const arrumar = paraHoraMinuto(configAtual.arrumarOffsetMin);
@@ -566,9 +614,15 @@ function preencherFormularioConfiguracao() {
 }
 
 function lerConfigDoFormulario() {
+  const nomeUsuario = (nomeUsuarioInput.value || "").trim().toUpperCase();
   const egoOffsetMin = paraMinutosTotais(egoHoursInput.value, egoMinutesInput.value);
   const basOffsetMin = paraMinutosTotais(basHoursInput.value, basMinutesInput.value);
   const arrumarOffsetMin = paraMinutosTotais(arrumarHoursInput.value, arrumarMinutesInput.value);
+
+  if (!nomeUsuario) {
+    alert("Informe o nome usado para buscar nos PDFs.");
+    return null;
+  }
 
   if (egoOffsetMin === null || basOffsetMin === null || arrumarOffsetMin === null) {
     alert("Preencha horas e minutos com valores válidos.");
@@ -576,6 +630,7 @@ function lerConfigDoFormulario() {
   }
 
   return {
+    nomeUsuario,
     egoOffsetMin,
     basOffsetMin,
     arrumarOffsetMin
@@ -601,6 +656,7 @@ function paraMinutosTotais(horasRaw, minutosRaw) {
 
 async function init() {
   try {
+    configAtual = await carregarConfigUsuario();
     await carregarDados();
     render();
   } catch (e) {
