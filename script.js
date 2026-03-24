@@ -1,4 +1,3 @@
-const nomeUsuario = "VINICIUS MATHEUS";
 const inicio = new Date(2026, 2, 11);
 
 let dataAtual = new Date();
@@ -14,7 +13,13 @@ const defaultConfig = {
   arrumarOffsetMin: 60
 };
 
+const defaultUserConfig = {
+  nomeUsuario: ""
+};
+
 let configAtual = carregarConfigLocal();
+let userConfigAtual = carregarUserConfigLocal();
+let avisoNomeUsuarioExibido = false;
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
@@ -31,6 +36,7 @@ const basHoursInput = document.getElementById("basHours");
 const basMinutesInput = document.getElementById("basMinutes");
 const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
+const nomeUsuarioInput = document.getElementById("nomeUsuarioConfig");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -61,12 +67,17 @@ settingsModal.addEventListener("click", (e) => {
 });
 
 saveSettingsBtn.addEventListener("click", async () => {
-  const novaConfig = lerConfigDoFormulario();
+  const novasConfiguracoes = lerConfigDoFormulario();
 
-  if (!novaConfig) return;
+  if (!novasConfiguracoes) return;
 
-  salvarConfigLocal(novaConfig);
-  configAtual = novaConfig;
+  salvarConfigLocal(novasConfiguracoes.configEscala);
+  salvarUserConfigLocal(novasConfiguracoes.configUsuario);
+  await salvarNomeUsuarioNoPerfil(novasConfiguracoes.configUsuario.nomeUsuario);
+
+  configAtual = novasConfiguracoes.configEscala;
+  userConfigAtual = novasConfiguracoes.configUsuario;
+  avisoNomeUsuarioExibido = false;
 
   const aplicarRetroativo = applyRetroactiveInput.checked;
 
@@ -139,8 +150,14 @@ function formatKey(date) {
     String(date.getDate()).padStart(2, "0");
 }
 
-function processarTexto(texto) {
+async function processarTexto(texto) {
   const ano = new Date().getFullYear();
+  const nomeUsuario = await obterNomeUsuarioConfigurado();
+
+  if (!nomeUsuario) {
+    mostrarAvisoNomeUsuarioNaoConfigurado();
+    return;
+  }
 
   const dataMatch = texto.match(/\d{1,2}\/\d{1,2}/);
   if (!dataMatch) return;
@@ -149,7 +166,7 @@ function processarTexto(texto) {
   const dateObj = criarDataLocal(ano, Number(mes), Number(dia));
   const data = formatKey(dateObj);
 
-  const indexNome = texto.indexOf(nomeUsuario);
+  const indexNome = texto.toUpperCase().indexOf(nomeUsuario.toUpperCase());
 
   if (indexNome === -1) {
     salvar({ data, status: "FOLGA" });
@@ -193,6 +210,52 @@ function processarTexto(texto) {
     arrumar,
     status: "TRABALHO"
   });
+}
+
+function mostrarAvisoNomeUsuarioNaoConfigurado() {
+  uploadHint.innerText = "Configure seu nome em Configurações para processar o PDF.";
+
+  if (!avisoNomeUsuarioExibido) {
+    alert("Antes de importar o PDF, configure seu nome em Configurações.");
+    avisoNomeUsuarioExibido = true;
+  }
+}
+
+async function obterNomeUsuarioConfigurado() {
+  const nomeLocal = (userConfigAtual.nomeUsuario || "").trim();
+  if (nomeLocal) return nomeLocal;
+
+  const user = firebase.auth().currentUser;
+  if (!user) return "";
+
+  try {
+    const perfilDoc = await db.collection("perfis").doc(user.uid).get();
+    const nomePerfil = (perfilDoc.data()?.nomeUsuario || "").trim();
+
+    if (nomePerfil) {
+      userConfigAtual = { nomeUsuario: nomePerfil };
+      salvarUserConfigLocal(userConfigAtual);
+      return nomePerfil;
+    }
+  } catch (erro) {
+    console.warn("Não foi possível buscar nome no perfil:", erro);
+  }
+
+  return "";
+}
+
+async function salvarNomeUsuarioNoPerfil(nomeUsuario) {
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+
+  try {
+    await db.collection("perfis").doc(user.uid).set(
+      { nomeUsuario: (nomeUsuario || "").trim() },
+      { merge: true }
+    );
+  } catch (erro) {
+    console.warn("Não foi possível salvar nome no perfil:", erro);
+  }
 }
 
 function calcularSaidaCasa(entrada, local) {
@@ -550,6 +613,26 @@ function salvarConfigLocal(config) {
   localStorage.setItem("escalaConfig", JSON.stringify(config));
 }
 
+function carregarUserConfigLocal() {
+  const raw = localStorage.getItem("escalaUserConfig");
+
+  if (!raw) return { ...defaultUserConfig };
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    return {
+      nomeUsuario: typeof parsed.nomeUsuario === "string" ? parsed.nomeUsuario.trim() : defaultUserConfig.nomeUsuario
+    };
+  } catch {
+    return { ...defaultUserConfig };
+  }
+}
+
+function salvarUserConfigLocal(config) {
+  localStorage.setItem("escalaUserConfig", JSON.stringify(config));
+}
+
 function preencherFormularioConfiguracao() {
   const ego = paraHoraMinuto(configAtual.egoOffsetMin);
   const bas = paraHoraMinuto(configAtual.basOffsetMin);
@@ -563,6 +646,7 @@ function preencherFormularioConfiguracao() {
 
   arrumarHoursInput.value = arrumar.h;
   arrumarMinutesInput.value = arrumar.m;
+  nomeUsuarioInput.value = userConfigAtual.nomeUsuario || "";
 }
 
 function lerConfigDoFormulario() {
@@ -575,10 +659,17 @@ function lerConfigDoFormulario() {
     return null;
   }
 
+  const nomeUsuario = nomeUsuarioInput.value.trim();
+
   return {
-    egoOffsetMin,
-    basOffsetMin,
-    arrumarOffsetMin
+    configEscala: {
+      egoOffsetMin,
+      basOffsetMin,
+      arrumarOffsetMin
+    },
+    configUsuario: {
+      nomeUsuario
+    }
   };
 }
 
