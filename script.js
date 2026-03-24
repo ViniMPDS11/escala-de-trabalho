@@ -37,6 +37,7 @@ const basMinutesInput = document.getElementById("basMinutes");
 const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuarioConfig");
+const nomeAtualPerfilInfo = document.getElementById("nomeAtualPerfilInfo");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -225,23 +226,27 @@ async function obterNomeUsuarioConfigurado() {
   const nomeLocal = (userConfigAtual.nomeUsuario || "").trim();
   if (nomeLocal) return nomeLocal;
 
+  const nomePerfil = await obterNomeUsuarioDoPerfil();
+  if (nomePerfil) {
+    userConfigAtual = { nomeUsuario: nomePerfil };
+    salvarUserConfigLocal(userConfigAtual);
+    return nomePerfil;
+  }
+
+  return "";
+}
+
+async function obterNomeUsuarioDoPerfil() {
   const user = firebase.auth().currentUser;
   if (!user) return "";
 
   try {
     const perfilDoc = await db.collection("perfis").doc(user.uid).get();
-    const nomePerfil = (perfilDoc.data()?.nomeUsuario || "").trim();
-
-    if (nomePerfil) {
-      userConfigAtual = { nomeUsuario: nomePerfil };
-      salvarUserConfigLocal(userConfigAtual);
-      return nomePerfil;
-    }
+    return (perfilDoc.data()?.nomeUsuario || "").trim();
   } catch (erro) {
     console.warn("Não foi possível buscar nome no perfil:", erro);
+    return "";
   }
-
-  return "";
 }
 
 async function salvarNomeUsuarioNoPerfil(nomeUsuario) {
@@ -579,8 +584,9 @@ function irParaData(dataStr) {
   }
 }
 
-function abrirConfiguracoes() {
+async function abrirConfiguracoes() {
   preencherFormularioConfiguracao();
+  await atualizarInfoNomeAtual();
   settingsModal.classList.add("aberto");
   settingsModal.setAttribute("aria-hidden", "false");
 }
@@ -647,6 +653,23 @@ function preencherFormularioConfiguracao() {
   arrumarHoursInput.value = arrumar.h;
   arrumarMinutesInput.value = arrumar.m;
   nomeUsuarioInput.value = userConfigAtual.nomeUsuario || "";
+}
+
+async function atualizarInfoNomeAtual() {
+  const nomePerfil = await obterNomeUsuarioDoPerfil();
+  const nomeLocal = (userConfigAtual.nomeUsuario || "").trim();
+
+  if (nomePerfil) {
+    nomeAtualPerfilInfo.innerText = `Nome atual no perfil: ${nomePerfil}`;
+    return;
+  }
+
+  if (nomeLocal) {
+    nomeAtualPerfilInfo.innerText = `Nome atual (local): ${nomeLocal}`;
+    return;
+  }
+
+  nomeAtualPerfilInfo.innerText = "Nome atual no perfil: não configurado";
 }
 
 function lerConfigDoFormulario() {
