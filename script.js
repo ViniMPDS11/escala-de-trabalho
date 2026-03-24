@@ -561,23 +561,27 @@ function salvarConfigLocal(config) {
 async function carregarConfigUsuario() {
   if (!usuarioAtual) return { ...defaultConfig };
 
-  const doc = await db.collection("configuracoes").doc(usuarioAtual.uid).get();
+  try {
+    const doc = await db.collection("configuracoes").doc(usuarioAtual.uid).get();
 
-  if (!doc.exists) {
-    await salvarConfigUsuario({ ...defaultConfig });
-    return { ...defaultConfig };
+    if (!doc.exists) {
+      return { ...configAtual };
+    }
+
+    const dados = doc.data() || {};
+    const configNormalizada = {
+      nomeUsuario: typeof dados.nomeUsuario === "string" && dados.nomeUsuario.trim() ? dados.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
+      basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
+      arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
+    };
+
+    salvarConfigLocal(configNormalizada);
+    return configNormalizada;
+  } catch (erro) {
+    console.warn("Não foi possível carregar configurações do banco. Usando cache local.", erro);
+    return { ...configAtual };
   }
-
-  const dados = doc.data() || {};
-  const configNormalizada = {
-    nomeUsuario: typeof dados.nomeUsuario === "string" && dados.nomeUsuario.trim() ? dados.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
-    egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
-    basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
-    arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
-  };
-
-  salvarConfigLocal(configNormalizada);
-  return configNormalizada;
 }
 
 async function salvarConfigUsuario(config) {
@@ -589,7 +593,11 @@ async function salvarConfigUsuario(config) {
   };
 
   if (usuarioAtual) {
-    await db.collection("configuracoes").doc(usuarioAtual.uid).set(configNormalizada, { merge: true });
+    try {
+      await db.collection("configuracoes").doc(usuarioAtual.uid).set(configNormalizada, { merge: true });
+    } catch (erro) {
+      console.warn("Não foi possível salvar configurações no banco. Configuração salva localmente.", erro);
+    }
   }
 
   salvarConfigLocal(configNormalizada);
@@ -657,6 +665,11 @@ function paraMinutosTotais(horasRaw, minutosRaw) {
 async function init() {
   try {
     configAtual = await carregarConfigUsuario();
+  } catch (e) {
+    console.warn("Erro ao carregar configurações. Mantendo cache local.", e);
+  }
+
+  try {
     await carregarDados();
     render();
   } catch (e) {
