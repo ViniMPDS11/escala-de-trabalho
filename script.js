@@ -200,31 +200,49 @@ function obterPartesData(data) {
   }
 
   if (typeof data === "string") {
-    const isoMatch = data.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    const valor = data.trim();
+
+    const isoMatch = valor.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (isoMatch) {
-      return {
+      const partesIso = {
         ano: Number(isoMatch[1]),
         mes: Number(isoMatch[2]),
         dia: Number(isoMatch[3])
       };
+      return partesDataValidas(partesIso) ? partesIso : null;
     }
 
-    const brMatch = data.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (brMatch) {
-      return {
-        ano: Number(brMatch[3]),
-        mes: Number(brMatch[2]),
-        dia: Number(brMatch[1])
+    // Formato americano vindo do Firestore: MM/DD/YYYY
+    const usMatch = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (usMatch) {
+      const partesUs = {
+        ano: Number(usMatch[3]),
+        mes: Number(usMatch[1]),
+        dia: Number(usMatch[2])
       };
+      return partesDataValidas(partesUs) ? partesUs : null;
     }
 
-    const parsed = new Date(data);
+    const parsed = new Date(valor);
     if (!Number.isNaN(parsed.getTime())) {
-      return obterPartesData(parsed);
+      const partesParse = obterPartesData(parsed);
+      return partesParse && partesDataValidas(partesParse) ? partesParse : null;
     }
   }
 
   return null;
+}
+
+function partesDataValidas(partes) {
+  if (!partes) return false;
+  const { ano, mes, dia } = partes;
+
+  if (!Number.isInteger(ano) || !Number.isInteger(mes) || !Number.isInteger(dia)) return false;
+  if (ano < 1900 || ano > 3000) return false;
+  if (mes < 1 || mes > 12) return false;
+
+  const maxDia = new Date(ano, mes, 0).getDate();
+  return dia >= 1 && dia <= maxDia;
 }
 
 function compararPartesData(a, b) {
@@ -618,7 +636,8 @@ function aplicarFiltroDiasPassadosNoDOM(ocultarPassados) {
 }
 
 function renderEscalaHoje(dados, hoje) {
-  const registroHoje = dados.find((d) => d.data === hoje);
+  const hojeNumero = partesParaNumero(hoje);
+  const registroHoje = dados.find((d) => partesParaNumero(d.data) === hojeNumero);
 
   if (!registroHoje) {
     return `
