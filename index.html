@@ -71,9 +71,17 @@
       <button class="settings-close" id="closeSettings" type="button" aria-label="Fechar configurações">✕</button>
     </div>
 
-    <p class="settings-desc">Ajuste os descontos para calcular os horários automaticamente.</p>
+    <p class="settings-desc">Ajuste o nome da busca nos PDFs e os descontos para calcular os horários automaticamente.</p>
+    <p class="settings-desc">Nome atual salvo: <strong id="nomeAtualConfigurado">(sem nome configurado)</strong></p>
 
     <div class="settings-grid">
+      <div class="settings-row">
+        <strong>Nome para buscar nos PDFs</strong>
+        <div class="time-inputs single-input">
+          <label>Nome completo <input type="text" id="nomeUsuario" placeholder="Ex.: VINICIUS MATHEUS"></label>
+        </div>
+      </div>
+
       <div class="settings-row">
         <strong>Descontar da entrada para sair de casa (EGO)</strong>
         <div class="time-inputs">

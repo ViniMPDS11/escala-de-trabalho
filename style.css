@@ -679,6 +679,14 @@ h1 {
   font: inherit;
 }
 
+.single-input {
+  grid-template-columns: 1fr;
+}
+
+#nomeUsuario {
+  text-transform: uppercase;
+}
+
 .toggle-retroativa {
   margin-top: 12px;
   display: flex;
