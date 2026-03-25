@@ -457,7 +457,7 @@ function renderLista() {
   const filtroPassadosInput = document.getElementById("ocultarPassados");
   filtroPassadosInput?.addEventListener("change", (event) => {
     localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
-    render();
+    renderLista();
   });
 
   lista.innerHTML += renderEscalaHoje(dados, hoje);
@@ -561,7 +561,9 @@ function renderLista() {
     lista.appendChild(anoBloco);
   });
 
-  aplicarFiltroDiasPassadosNoDOM(ocultarPassados);
+  setTimeout(() => {
+    aplicarFiltroDiasPassadosNoDOM(ocultarPassados);
+  }, 0);
 }
 
 function atualizarBadgeLista(total) {
@@ -577,8 +579,10 @@ function aplicarFiltroDiasPassadosNoDOM(ocultarPassados) {
   let totalVisiveis = 0;
 
   document.querySelectorAll("#lista .card").forEach((card) => {
-    const numeroCard = partesParaNumero(card.dataset.data || "");
-    const esconder = ocultarPassados && (numeroCard === null || numeroCard < hojeNumero);
+    const numeroCard = partesParaNumero(card.dataset.data);
+    if (numeroCard === null) return;
+
+    const esconder = ocultarPassados && numeroCard < hojeNumero;
 
     card.style.display = esconder ? "none" : "";
 
