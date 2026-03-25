@@ -491,6 +491,7 @@ function renderLista() {
         const div = document.createElement("div");
         div.className = "card";
         div.id = "dia-" + d.data;
+        div.dataset.data = d.data;
 
         if (d.data === hoje) div.classList.add("today");
 
@@ -530,6 +531,40 @@ function renderLista() {
     });
 
     lista.appendChild(anoBloco);
+  });
+
+  if (ocultarPassados) {
+    removerCardsPassadosDoDOM(hojeInicio);
+  }
+}
+
+function removerCardsPassadosDoDOM(hojeInicio) {
+  document.querySelectorAll("#lista .card").forEach((card) => {
+    const dataCard = parseDataEscala(card.dataset.data || "");
+    if (!dataCard) {
+      card.remove();
+      return;
+    }
+
+    if (dataCard < hojeInicio) {
+      card.remove();
+    }
+  });
+
+  document.querySelectorAll("#lista .mes-conteudo").forEach((conteudo) => {
+    const temCard = conteudo.querySelector(".card");
+    if (temCard) return;
+
+    const headerMes = conteudo.previousElementSibling;
+    headerMes?.remove();
+    conteudo.remove();
+  });
+
+  document.querySelectorAll("#lista .ano-bloco").forEach((anoBloco) => {
+    const temMes = anoBloco.querySelector(".mes-header");
+    if (!temMes) {
+      anoBloco.remove();
+    }
   });
 }
 
