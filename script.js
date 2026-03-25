@@ -170,39 +170,68 @@ function formatKey(date) {
 }
 
 function parseDataEscala(data) {
+  const partes = obterPartesData(data);
+  if (!partes) return null;
+  return new Date(partes.ano, partes.mes - 1, partes.dia);
+}
+
+function inicioDoDia(data = new Date()) {
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
+}
+
+function obterPartesData(data) {
   if (!data) return null;
 
   if (data instanceof Date) {
-    return Number.isNaN(data.getTime()) ? null : inicioDoDia(data);
+    if (Number.isNaN(data.getTime())) return null;
+    return {
+      ano: data.getFullYear(),
+      mes: data.getMonth() + 1,
+      dia: data.getDate()
+    };
   }
 
   if (typeof data === "object" && Number.isFinite(data.seconds)) {
-    const timestampDate = new Date(data.seconds * 1000);
-    return Number.isNaN(timestampDate.getTime()) ? null : inicioDoDia(timestampDate);
+    return obterPartesData(new Date(data.seconds * 1000));
   }
 
   if (typeof data === "number") {
-    const numberDate = new Date(data);
-    return Number.isNaN(numberDate.getTime()) ? null : inicioDoDia(numberDate);
+    return obterPartesData(new Date(data));
   }
 
   if (typeof data === "string") {
-    const isoDate = new Date(data);
-    if (!Number.isNaN(isoDate.getTime())) {
-      return inicioDoDia(isoDate);
+    const isoMatch = data.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (isoMatch) {
+      return {
+        ano: Number(isoMatch[1]),
+        mes: Number(isoMatch[2]),
+        dia: Number(isoMatch[3])
+      };
     }
 
-    const [ano, mes, dia] = data.split("-").map(Number);
-    if (ano && mes && dia) {
-      return new Date(ano, mes - 1, dia);
+    const brMatch = data.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (brMatch) {
+      return {
+        ano: Number(brMatch[3]),
+        mes: Number(brMatch[2]),
+        dia: Number(brMatch[1])
+      };
+    }
+
+    const parsed = new Date(data);
+    if (!Number.isNaN(parsed.getTime())) {
+      return obterPartesData(parsed);
     }
   }
 
   return null;
 }
 
-function inicioDoDia(data = new Date()) {
-  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
+function compararPartesData(a, b) {
+  if (!a || !b) return 0;
+  if (a.ano !== b.ano) return a.ano - b.ano;
+  if (a.mes !== b.mes) return a.mes - b.mes;
+  return a.dia - b.dia;
 }
 
 function processarTexto(texto) {
@@ -402,12 +431,12 @@ function renderLista() {
   });
   const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
   const hoje = formatKey(new Date());
-  const hojeInicio = inicioDoDia();
+  const hojePartes = obterPartesData(new Date());
   const dadosVisiveis = ocultarPassados
     ? dados.filter((d) => {
-      const dataRegistro = parseDataEscala(d.data);
+      const dataRegistro = obterPartesData(d.data);
       if (!dataRegistro) return false;
-      return dataRegistro >= hojeInicio;
+      return compararPartesData(dataRegistro, hojePartes) >= 0;
     })
     : dados;
 
@@ -534,19 +563,19 @@ function renderLista() {
   });
 
   if (ocultarPassados) {
-    removerCardsPassadosDoDOM(hojeInicio);
+    removerCardsPassadosDoDOM(hojePartes);
   }
 }
 
-function removerCardsPassadosDoDOM(hojeInicio) {
+function removerCardsPassadosDoDOM(hojePartes) {
   document.querySelectorAll("#lista .card").forEach((card) => {
-    const dataCard = parseDataEscala(card.dataset.data || "");
+    const dataCard = obterPartesData(card.dataset.data || "");
     if (!dataCard) {
       card.remove();
       return;
     }
 
-    if (dataCard < hojeInicio) {
+    if (compararPartesData(dataCard, hojePartes) < 0) {
       card.remove();
     }
   });
