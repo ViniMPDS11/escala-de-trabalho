@@ -99,6 +99,8 @@ saveSettingsBtn.addEventListener("click", async () => {
 logoutGoogleBtn.addEventListener("click", async () => {
   try {
     await firebase.auth().signOut();
+    limparDadosEscalaLocal();
+    render();
     fecharConfiguracoes();
   } catch (erro) {
     console.error("Erro ao deslogar do Google:", erro);
@@ -119,9 +121,14 @@ firebase.auth().onAuthStateChanged(user => {
   } else {
     usuarioAtual = null;
     document.querySelector(".btn-google").style.display = "flex";
+    limparDadosEscalaLocal();
     render();
   }
 });
+
+function limparDadosEscalaLocal() {
+  localStorage.setItem("escala", "[]");
+}
 
 async function carregarDados() {
   const snapshot = await db.collection("escala").get();
@@ -163,12 +170,35 @@ function formatKey(date) {
 }
 
 function parseDataEscala(data) {
-  if (typeof data !== "string") return null;
+  if (!data) return null;
 
-  const [ano, mes, dia] = data.split("-").map(Number);
-  if (!ano || !mes || !dia) return null;
+  if (data instanceof Date) {
+    return Number.isNaN(data.getTime()) ? null : inicioDoDia(data);
+  }
 
-  return new Date(ano, mes - 1, dia);
+  if (typeof data === "object" && Number.isFinite(data.seconds)) {
+    const timestampDate = new Date(data.seconds * 1000);
+    return Number.isNaN(timestampDate.getTime()) ? null : inicioDoDia(timestampDate);
+  }
+
+  if (typeof data === "number") {
+    const numberDate = new Date(data);
+    return Number.isNaN(numberDate.getTime()) ? null : inicioDoDia(numberDate);
+  }
+
+  if (typeof data === "string") {
+    const isoDate = new Date(data);
+    if (!Number.isNaN(isoDate.getTime())) {
+      return inicioDoDia(isoDate);
+    }
+
+    const [ano, mes, dia] = data.split("-").map(Number);
+    if (ano && mes && dia) {
+      return new Date(ano, mes - 1, dia);
+    }
+  }
+
+  return null;
 }
 
 function inicioDoDia(data = new Date()) {
@@ -360,14 +390,23 @@ function renderLista() {
   const lista = document.getElementById("lista");
 
   let dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+  dados.sort((a, b) => {
+    const aData = parseDataEscala(a.data);
+    const bData = parseDataEscala(b.data);
+
+    if (!aData && !bData) return 0;
+    if (!aData) return 1;
+    if (!bData) return -1;
+
+    return aData - bData;
+  });
   const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
   const hoje = formatKey(new Date());
   const hojeInicio = inicioDoDia();
   const dadosVisiveis = ocultarPassados
     ? dados.filter((d) => {
       const dataRegistro = parseDataEscala(d.data);
-      if (!dataRegistro) return true;
+      if (!dataRegistro) return false;
       return dataRegistro >= hojeInicio;
     })
     : dados;
@@ -391,7 +430,7 @@ function renderLista() {
   const filtroPassadosInput = document.getElementById("ocultarPassados");
   filtroPassadosInput?.addEventListener("change", (event) => {
     localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
-    renderLista();
+    render();
   });
 
   lista.innerHTML += renderEscalaHoje(dados, hoje);
@@ -404,11 +443,8 @@ function renderLista() {
   const agrupado = {};
 
   dadosVisiveis.forEach(d => {
-    const date = criarDataLocal(
-      d.data.slice(0, 4),
-      d.data.slice(5, 7),
-      d.data.slice(8, 10)
-    );
+    const date = parseDataEscala(d.data);
+    if (!date) return;
 
     const ano = date.getFullYear();
     const mes = date.getMonth();
