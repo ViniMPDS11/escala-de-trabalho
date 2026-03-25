@@ -162,6 +162,19 @@ function formatKey(date) {
     String(date.getDate()).padStart(2, "0");
 }
 
+function parseDataEscala(data) {
+  if (typeof data !== "string") return null;
+
+  const [ano, mes, dia] = data.split("-").map(Number);
+  if (!ano || !mes || !dia) return null;
+
+  return new Date(ano, mes - 1, dia);
+}
+
+function inicioDoDia(data = new Date()) {
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
+}
+
 function processarTexto(texto) {
   const ano = new Date().getFullYear();
 
@@ -350,7 +363,14 @@ function renderLista() {
   dados.sort((a, b) => new Date(a.data) - new Date(b.data));
   const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
   const hoje = formatKey(new Date());
-  const dadosVisiveis = ocultarPassados ? dados.filter((d) => d.data >= hoje) : dados;
+  const hojeInicio = inicioDoDia();
+  const dadosVisiveis = ocultarPassados
+    ? dados.filter((d) => {
+      const dataRegistro = parseDataEscala(d.data);
+      if (!dataRegistro) return true;
+      return dataRegistro >= hojeInicio;
+    })
+    : dados;
 
   lista.innerHTML = `
     <div class="lista-topo">
