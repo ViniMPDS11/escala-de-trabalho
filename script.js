@@ -568,18 +568,43 @@ async function carregarConfigUsuario() {
   if (!usuarioAtual) return { ...defaultConfig };
 
   try {
-    const doc = await db.collection("config").doc("user").get();
+    const [docUsuario, docHoras, docHorasAlternativo] = await Promise.all([
+      db.collection("config").doc("user").get(),
+      db.collection("config").doc("hours_config").get(),
+      db.collection("config").doc("hours-config").get()
+    ]);
 
-    if (!doc.exists) {
-      return { ...configAtual };
-    }
+    const dadosUsuario = docUsuario.exists ? (docUsuario.data() || {}) : {};
+    const dadosHoras = docHoras.exists
+      ? (docHoras.data() || {})
+      : (docHorasAlternativo.exists ? (docHorasAlternativo.data() || {}) : {});
 
-    const dados = doc.data() || {};
+    const egoOffsetMin = obterOffsetEmMinutos(
+      dadosHoras.sairEgoOffsetHour,
+      dadosHoras.sairEgoOffsetMin,
+      dadosUsuario.egoOffsetMin,
+      defaultConfig.egoOffsetMin
+    );
+
+    const basOffsetMin = obterOffsetEmMinutos(
+      dadosHoras.sairBasOffsetHour,
+      dadosHoras.sairBasOffsetMin,
+      dadosUsuario.basOffsetMin,
+      defaultConfig.basOffsetMin
+    );
+
+    const arrumarOffsetMin = obterOffsetEmMinutos(
+      dadosHoras.arrumarOffsetHour,
+      dadosHoras.arrumarOffsetMin,
+      dadosUsuario.arrumarOffsetMin,
+      defaultConfig.arrumarOffsetMin
+    );
+
     const configNormalizada = {
-      nomeUsuario: typeof dados.nome === "string" ? dados.nome.trim().toUpperCase() : defaultConfig.nomeUsuario,
-      egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
-      basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
-      arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
+      nomeUsuario: typeof dadosUsuario.nome === "string" ? dadosUsuario.nome.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      egoOffsetMin,
+      basOffsetMin,
+      arrumarOffsetMin
     };
 
     salvarConfigLocal(configNormalizada);
@@ -600,12 +625,23 @@ async function salvarConfigUsuario(config) {
 
   if (usuarioAtual) {
     try {
-      await db.collection("config").doc("user").set({
-        nome: configNormalizada.nomeUsuario,
-        egoOffsetMin: configNormalizada.egoOffsetMin,
-        basOffsetMin: configNormalizada.basOffsetMin,
-        arrumarOffsetMin: configNormalizada.arrumarOffsetMin
-      }, { merge: true });
+      const ego = paraHoraMinuto(configNormalizada.egoOffsetMin);
+      const bas = paraHoraMinuto(configNormalizada.basOffsetMin);
+      const arrumar = paraHoraMinuto(configNormalizada.arrumarOffsetMin);
+
+      await Promise.all([
+        db.collection("config").doc("user").set({
+          nome: configNormalizada.nomeUsuario
+        }, { merge: true }),
+        db.collection("config").doc("hours_config").set({
+          arrumarOffsetHour: arrumar.h,
+          arrumarOffsetMin: arrumar.m,
+          sairBasOffsetHour: bas.h,
+          sairBasOffsetMin: bas.m,
+          sairEgoOffsetHour: ego.h,
+          sairEgoOffsetMin: ego.m
+        }, { merge: true })
+      ]);
     } catch (erro) {
       console.warn("Não foi possível salvar configurações no banco. Configuração salva localmente.", erro);
     }
@@ -670,6 +706,18 @@ function paraMinutosTotais(horasRaw, minutosRaw) {
   if (horas < 0 || minutos < 0 || minutos > 59 || horas > 23) return null;
 
   return horas * 60 + minutos;
+}
+
+function obterOffsetEmMinutos(horaRaw, minRaw, legadoRaw, valorPadrao) {
+  if (Number.isFinite(horaRaw) && Number.isFinite(minRaw)) {
+    return (horaRaw * 60) + minRaw;
+  }
+
+  if (Number.isFinite(legadoRaw)) {
+    return legadoRaw;
+  }
+
+  return valorPadrao;
 }
 
 async function init() {
