@@ -234,6 +234,12 @@ function compararPartesData(a, b) {
   return a.dia - b.dia;
 }
 
+function partesParaNumero(data) {
+  const partes = obterPartesData(data);
+  if (!partes) return null;
+  return partes.ano * 10000 + partes.mes * 100 + partes.dia;
+}
+
 function processarTexto(texto) {
   const ano = new Date().getFullYear();
 
@@ -431,14 +437,6 @@ function renderLista() {
   });
   const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
   const hoje = formatKey(new Date());
-  const hojePartes = obterPartesData(new Date());
-  const dadosVisiveis = ocultarPassados
-    ? dados.filter((d) => {
-      const dataRegistro = obterPartesData(d.data);
-      if (!dataRegistro) return false;
-      return compararPartesData(dataRegistro, hojePartes) >= 0;
-    })
-    : dados;
 
   lista.innerHTML = `
     <div class="lista-topo">
@@ -446,7 +444,7 @@ function renderLista() {
         <div class="lista-titulo">Próximos detalhes da escala</div>
         <div class="lista-subtitulo">Toque em um mês para ver os dias.</div>
       </div>
-      <div class="lista-badge">${dadosVisiveis.length} registro${dadosVisiveis.length === 1 ? "" : "s"}</div>
+      <div class="lista-badge" id="listaBadgeCount">0 registros</div>
     </div>
     <div class="lista-filtros">
       <label class="filtro-passados">
@@ -464,14 +462,15 @@ function renderLista() {
 
   lista.innerHTML += renderEscalaHoje(dados, hoje);
 
-  if (!dadosVisiveis.length) {
+  if (!dados.length) {
+    atualizarBadgeLista(0);
     lista.innerHTML += '<div class="lista-vazia">Nenhum registro encontrado. Importe um PDF para preencher sua escala.</div>';
     return;
   }
 
   const agrupado = {};
 
-  dadosVisiveis.forEach(d => {
+  dados.forEach(d => {
     const date = parseDataEscala(d.data);
     if (!date) return;
 
@@ -562,39 +561,56 @@ function renderLista() {
     lista.appendChild(anoBloco);
   });
 
-  if (ocultarPassados) {
-    removerCardsPassadosDoDOM(hojePartes);
-  }
+  aplicarFiltroDiasPassadosNoDOM(ocultarPassados);
 }
 
-function removerCardsPassadosDoDOM(hojePartes) {
-  document.querySelectorAll("#lista .card").forEach((card) => {
-    const dataCard = obterPartesData(card.dataset.data || "");
-    if (!dataCard) {
-      card.remove();
-      return;
-    }
+function atualizarBadgeLista(total) {
+  const badge = document.getElementById("listaBadgeCount");
+  if (!badge) return;
+  badge.innerText = `${total} registro${total === 1 ? "" : "s"}`;
+}
 
-    if (compararPartesData(dataCard, hojePartes) < 0) {
-      card.remove();
+function aplicarFiltroDiasPassadosNoDOM(ocultarPassados) {
+  const hojeNumero = partesParaNumero(new Date());
+  if (!hojeNumero) return;
+
+  let totalVisiveis = 0;
+
+  document.querySelectorAll("#lista .card").forEach((card) => {
+    const numeroCard = partesParaNumero(card.dataset.data || "");
+    const esconder = ocultarPassados && (numeroCard === null || numeroCard < hojeNumero);
+
+    card.style.display = esconder ? "none" : "";
+
+    if (!esconder) {
+      totalVisiveis += 1;
     }
   });
 
   document.querySelectorAll("#lista .mes-conteudo").forEach((conteudo) => {
-    const temCard = conteudo.querySelector(".card");
-    if (temCard) return;
+    const cardsVisiveis = [...conteudo.querySelectorAll(".card")].some(
+      (card) => card.style.display !== "none"
+    );
 
     const headerMes = conteudo.previousElementSibling;
-    headerMes?.remove();
-    conteudo.remove();
+    if (!cardsVisiveis) {
+      conteudo.style.display = "none";
+      if (headerMes) headerMes.style.display = "none";
+      return;
+    }
+
+    conteudo.style.display = "";
+    if (headerMes) headerMes.style.display = "";
   });
 
   document.querySelectorAll("#lista .ano-bloco").forEach((anoBloco) => {
-    const temMes = anoBloco.querySelector(".mes-header");
-    if (!temMes) {
-      anoBloco.remove();
-    }
+    const temMesVisivel = [...anoBloco.querySelectorAll(".mes-header")].some(
+      (mesHeader) => mesHeader.style.display !== "none"
+    );
+    anoBloco.style.display = temMesVisivel ? "" : "none";
   });
+
+  atualizarBadgeLista(totalVisiveis);
 }
 
 function renderEscalaHoje(dados, hoje) {
