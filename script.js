@@ -475,7 +475,7 @@ function renderLista() {
   const filtroPassadosInput = document.getElementById("ocultarPassados");
   filtroPassadosInput?.addEventListener("change", (event) => {
     localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
-    renderLista();
+    aplicarFiltroDiasPassadosNoDOM();
   });
 
   lista.innerHTML += renderEscalaHoje(dados, hoje);
@@ -579,9 +579,7 @@ function renderLista() {
     lista.appendChild(anoBloco);
   });
 
-  setTimeout(() => {
-    aplicarFiltroDiasPassadosNoDOM(ocultarPassados);
-  }, 0);
+  aplicarFiltroDiasPassadosNoDOM();
 }
 
 function atualizarBadgeLista(total) {
@@ -590,7 +588,8 @@ function atualizarBadgeLista(total) {
   badge.innerText = `${total} registro${total === 1 ? "" : "s"}`;
 }
 
-function aplicarFiltroDiasPassadosNoDOM(ocultarPassados) {
+function aplicarFiltroDiasPassadosNoDOM() {
+  const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
   const hojeNumero = partesParaNumero(new Date());
   if (!hojeNumero) return;
 
