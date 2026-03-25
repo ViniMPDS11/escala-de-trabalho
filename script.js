@@ -24,6 +24,7 @@ const settingsModal = document.getElementById("settingsModal");
 const openSettingsBtn = document.getElementById("openSettings");
 const closeSettingsBtn = document.getElementById("closeSettings");
 const saveSettingsBtn = document.getElementById("saveSettings");
+const logoutGoogleBtn = document.getElementById("logoutGoogle");
 const applyRetroactiveInput = document.getElementById("applyRetroactive");
 
 const egoHoursInput = document.getElementById("egoHours");
@@ -34,6 +35,7 @@ const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
+const filtroDiasKey = "escalaFiltroOcultarPassados";
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -94,6 +96,16 @@ saveSettingsBtn.addEventListener("click", async () => {
   fecharConfiguracoes();
 });
 
+logoutGoogleBtn.addEventListener("click", async () => {
+  try {
+    await firebase.auth().signOut();
+    fecharConfiguracoes();
+  } catch (erro) {
+    console.error("Erro ao deslogar do Google:", erro);
+    alert("Não foi possível deslogar agora. Tente novamente.");
+  }
+});
+
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider);
@@ -106,7 +118,8 @@ firebase.auth().onAuthStateChanged(user => {
     init();
   } else {
     usuarioAtual = null;
-    login();
+    document.querySelector(".btn-google").style.display = "flex";
+    render();
   }
 });
 
@@ -335,6 +348,9 @@ function renderLista() {
 
   let dados = JSON.parse(localStorage.getItem("escala") || "[]");
   dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+  const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
+  const hoje = formatKey(new Date());
+  const dadosVisiveis = ocultarPassados ? dados.filter((d) => d.data >= hoje) : dados;
 
   lista.innerHTML = `
     <div class="lista-topo">
@@ -342,20 +358,32 @@ function renderLista() {
         <div class="lista-titulo">Próximos detalhes da escala</div>
         <div class="lista-subtitulo">Toque em um mês para ver os dias.</div>
       </div>
-      <div class="lista-badge">${dados.length} registro${dados.length === 1 ? "" : "s"}</div>
+      <div class="lista-badge">${dadosVisiveis.length} registro${dadosVisiveis.length === 1 ? "" : "s"}</div>
+    </div>
+    <div class="lista-filtros">
+      <label class="filtro-passados">
+        <input type="checkbox" id="ocultarPassados" ${ocultarPassados ? "checked" : ""}>
+        <span>Ocultar dias que já passaram</span>
+      </label>
     </div>
   `;
 
-  if (!dados.length) {
+  const filtroPassadosInput = document.getElementById("ocultarPassados");
+  filtroPassadosInput?.addEventListener("change", (event) => {
+    localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
+    renderLista();
+  });
+
+  lista.innerHTML += renderEscalaHoje(dados, hoje);
+
+  if (!dadosVisiveis.length) {
     lista.innerHTML += '<div class="lista-vazia">Nenhum registro encontrado. Importe um PDF para preencher sua escala.</div>';
     return;
   }
 
-  const hoje = formatKey(new Date());
-
   const agrupado = {};
 
-  dados.forEach(d => {
+  dadosVisiveis.forEach(d => {
     const date = criarDataLocal(
       d.data.slice(0, 4),
       d.data.slice(5, 7),
@@ -447,6 +475,47 @@ function renderLista() {
 
     lista.appendChild(anoBloco);
   });
+}
+
+function renderEscalaHoje(dados, hoje) {
+  const registroHoje = dados.find((d) => d.data === hoje);
+
+  if (!registroHoje) {
+    return `
+      <section class="escala-hoje sem-registro">
+        <div class="escala-hoje-titulo">Escala de hoje</div>
+        <div class="escala-hoje-linha">Hoje (${formatarData(hoje)}) ainda não possui registro importado.</div>
+      </section>
+    `;
+  }
+
+  if (registroHoje.status === "FOLGA") {
+    return `
+      <section class="escala-hoje">
+        <div class="escala-hoje-topo">
+          <div class="escala-hoje-titulo">Escala de hoje</div>
+          <div class="card-badge folga">Folga</div>
+        </div>
+        <div class="escala-hoje-linha">Data: ${formatarData(registroHoje.data)}</div>
+        <div class="escala-hoje-linha">Dia livre para descansar.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="escala-hoje">
+      <div class="escala-hoje-topo">
+        <div class="escala-hoje-titulo">Escala de hoje</div>
+        <div class="card-badge trabalho">Trabalho</div>
+      </div>
+      <div class="escala-hoje-grid">
+        <div class="card-linha"><strong>Entrada</strong>${registroHoje.entrada || "-"}</div>
+        <div class="card-linha"><strong>Saída</strong>${registroHoje.saida || "-"}</div>
+        <div class="card-linha"><strong>Local</strong>${registroHoje.local || "-"}</div>
+        <div class="card-linha"><strong>Sair de casa</strong>${registroHoje.sairCasa || "-"}</div>
+      </div>
+    </section>
+  `;
 }
 
 function toggleMes(id) {
