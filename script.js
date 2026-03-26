@@ -24,6 +24,7 @@ const settingsModal = document.getElementById("settingsModal");
 const openSettingsBtn = document.getElementById("openSettings");
 const closeSettingsBtn = document.getElementById("closeSettings");
 const saveSettingsBtn = document.getElementById("saveSettings");
+const logoutGoogleBtn = document.getElementById("logoutGoogle");
 const applyRetroactiveInput = document.getElementById("applyRetroactive");
 
 const egoHoursInput = document.getElementById("egoHours");
@@ -34,6 +35,7 @@ const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
+const filtroDiasKey = "escalaFiltroOcultarPassados";
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -94,6 +96,18 @@ saveSettingsBtn.addEventListener("click", async () => {
   fecharConfiguracoes();
 });
 
+logoutGoogleBtn.addEventListener("click", async () => {
+  try {
+    await firebase.auth().signOut();
+    limparDadosEscalaLocal();
+    render();
+    fecharConfiguracoes();
+  } catch (erro) {
+    console.error("Erro ao deslogar do Google:", erro);
+    alert("Não foi possível deslogar agora. Tente novamente.");
+  }
+});
+
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider);
@@ -106,9 +120,15 @@ firebase.auth().onAuthStateChanged(user => {
     init();
   } else {
     usuarioAtual = null;
-    login();
+    document.querySelector(".btn-google").style.display = "flex";
+    limparDadosEscalaLocal();
+    render();
   }
 });
+
+function limparDadosEscalaLocal() {
+  localStorage.setItem("escala", "[]");
+}
 
 async function carregarDados() {
   const snapshot = await db.collection("escala").get();
@@ -147,6 +167,95 @@ function formatKey(date) {
   return date.getFullYear() + "-" +
     String(date.getMonth() + 1).padStart(2, "0") + "-" +
     String(date.getDate()).padStart(2, "0");
+}
+
+function parseDataEscala(data) {
+  const partes = obterPartesData(data);
+  if (!partes) return null;
+  return new Date(partes.ano, partes.mes - 1, partes.dia);
+}
+
+function inicioDoDia(data = new Date()) {
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
+}
+
+function obterPartesData(data) {
+  if (!data) return null;
+
+  if (data instanceof Date) {
+    if (Number.isNaN(data.getTime())) return null;
+    return {
+      ano: data.getFullYear(),
+      mes: data.getMonth() + 1,
+      dia: data.getDate()
+    };
+  }
+
+  if (typeof data === "object" && Number.isFinite(data.seconds)) {
+    return obterPartesData(new Date(data.seconds * 1000));
+  }
+
+  if (typeof data === "number") {
+    return obterPartesData(new Date(data));
+  }
+
+  if (typeof data === "string") {
+    const valor = data.trim();
+
+    const isoMatch = valor.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (isoMatch) {
+      const partesIso = {
+        ano: Number(isoMatch[1]),
+        mes: Number(isoMatch[2]),
+        dia: Number(isoMatch[3])
+      };
+      return partesDataValidas(partesIso) ? partesIso : null;
+    }
+
+    // Formato americano vindo do Firestore: MM/DD/YYYY
+    const usMatch = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (usMatch) {
+      const partesUs = {
+        ano: Number(usMatch[3]),
+        mes: Number(usMatch[1]),
+        dia: Number(usMatch[2])
+      };
+      return partesDataValidas(partesUs) ? partesUs : null;
+    }
+
+    const parsed = new Date(valor);
+    if (!Number.isNaN(parsed.getTime())) {
+      const partesParse = obterPartesData(parsed);
+      return partesParse && partesDataValidas(partesParse) ? partesParse : null;
+    }
+  }
+
+  return null;
+}
+
+function partesDataValidas(partes) {
+  if (!partes) return false;
+  const { ano, mes, dia } = partes;
+
+  if (!Number.isInteger(ano) || !Number.isInteger(mes) || !Number.isInteger(dia)) return false;
+  if (ano < 1900 || ano > 3000) return false;
+  if (mes < 1 || mes > 12) return false;
+
+  const maxDia = new Date(ano, mes, 0).getDate();
+  return dia >= 1 && dia <= maxDia;
+}
+
+function compararPartesData(a, b) {
+  if (!a || !b) return 0;
+  if (a.ano !== b.ano) return a.ano - b.ano;
+  if (a.mes !== b.mes) return a.mes - b.mes;
+  return a.dia - b.dia;
+}
+
+function partesParaNumero(data) {
+  const partes = obterPartesData(data);
+  if (!partes) return null;
+  return partes.ano * 10000 + partes.mes * 100 + partes.dia;
 }
 
 function processarTexto(texto) {
@@ -334,7 +443,18 @@ function renderLista() {
   const lista = document.getElementById("lista");
 
   let dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  dados.sort((a, b) => new Date(a.data) - new Date(b.data));
+  dados.sort((a, b) => {
+    const aData = parseDataEscala(a.data);
+    const bData = parseDataEscala(b.data);
+
+    if (!aData && !bData) return 0;
+    if (!aData) return 1;
+    if (!bData) return -1;
+
+    return aData - bData;
+  });
+  const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
+  const hoje = formatKey(new Date());
 
   lista.innerHTML = `
     <div class="lista-topo">
@@ -342,25 +462,35 @@ function renderLista() {
         <div class="lista-titulo">Próximos detalhes da escala</div>
         <div class="lista-subtitulo">Toque em um mês para ver os dias.</div>
       </div>
-      <div class="lista-badge">${dados.length} registro${dados.length === 1 ? "" : "s"}</div>
+      <div class="lista-badge" id="listaBadgeCount">0 registros</div>
+    </div>
+    <div class="lista-filtros">
+      <label class="filtro-passados">
+        <input type="checkbox" id="ocultarPassados" ${ocultarPassados ? "checked" : ""}>
+        <span>Ocultar dias que já passaram</span>
+      </label>
     </div>
   `;
 
+  const filtroPassadosInput = document.getElementById("ocultarPassados");
+  filtroPassadosInput?.addEventListener("change", (event) => {
+    localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
+    aplicarFiltroDiasPassadosNoDOM();
+  });
+
+  lista.innerHTML += renderEscalaHoje(dados, hoje);
+
   if (!dados.length) {
+    atualizarBadgeLista(0);
     lista.innerHTML += '<div class="lista-vazia">Nenhum registro encontrado. Importe um PDF para preencher sua escala.</div>';
     return;
   }
 
-  const hoje = formatKey(new Date());
-
   const agrupado = {};
 
   dados.forEach(d => {
-    const date = criarDataLocal(
-      d.data.slice(0, 4),
-      d.data.slice(5, 7),
-      d.data.slice(8, 10)
-    );
+    const date = parseDataEscala(d.data);
+    if (!date) return;
 
     const ano = date.getFullYear();
     const mes = date.getMonth();
@@ -407,6 +537,7 @@ function renderLista() {
         const div = document.createElement("div");
         div.className = "card";
         div.id = "dia-" + d.data;
+        div.dataset.data = d.data;
 
         if (d.data === hoje) div.classList.add("today");
 
@@ -447,6 +578,102 @@ function renderLista() {
 
     lista.appendChild(anoBloco);
   });
+
+  aplicarFiltroDiasPassadosNoDOM();
+}
+
+function atualizarBadgeLista(total) {
+  const badge = document.getElementById("listaBadgeCount");
+  if (!badge) return;
+  badge.innerText = `${total} registro${total === 1 ? "" : "s"}`;
+}
+
+function aplicarFiltroDiasPassadosNoDOM() {
+  const ocultarPassados = localStorage.getItem(filtroDiasKey) === "1";
+  const hojeNumero = partesParaNumero(new Date());
+  if (!hojeNumero) return;
+
+  let totalVisiveis = 0;
+
+  document.querySelectorAll("#lista .card").forEach((card) => {
+    const numeroCard = partesParaNumero(card.dataset.data);
+    if (numeroCard === null) return;
+
+    const esconder = ocultarPassados && numeroCard < hojeNumero;
+
+    card.style.display = esconder ? "none" : "";
+
+    if (!esconder) {
+      totalVisiveis += 1;
+    }
+  });
+
+  document.querySelectorAll("#lista .mes-conteudo").forEach((conteudo) => {
+    const cardsVisiveis = [...conteudo.querySelectorAll(".card")].some(
+      (card) => card.style.display !== "none"
+    );
+
+    const headerMes = conteudo.previousElementSibling;
+    if (!cardsVisiveis) {
+      conteudo.style.display = "none";
+      if (headerMes) headerMes.style.display = "none";
+      return;
+    }
+
+    conteudo.style.display = "";
+    if (headerMes) headerMes.style.display = "";
+  });
+
+  document.querySelectorAll("#lista .ano-bloco").forEach((anoBloco) => {
+    const temMesVisivel = [...anoBloco.querySelectorAll(".mes-header")].some(
+      (mesHeader) => mesHeader.style.display !== "none"
+    );
+    anoBloco.style.display = temMesVisivel ? "" : "none";
+  });
+
+  atualizarBadgeLista(totalVisiveis);
+}
+
+function renderEscalaHoje(dados, hoje) {
+  const hojeNumero = partesParaNumero(hoje);
+  const registroHoje = dados.find((d) => partesParaNumero(d.data) === hojeNumero);
+
+  if (!registroHoje) {
+    return `
+      <section class="escala-hoje sem-registro">
+        <div class="escala-hoje-titulo">Escala de hoje</div>
+        <div class="escala-hoje-linha">Hoje (${formatarData(hoje)}) ainda não possui registro importado.</div>
+      </section>
+    `;
+  }
+
+  if (registroHoje.status === "FOLGA") {
+    return `
+      <section class="escala-hoje">
+        <div class="escala-hoje-topo">
+          <div class="escala-hoje-titulo">Escala de hoje</div>
+          <div class="card-badge folga">Folga</div>
+        </div>
+        <div class="escala-hoje-linha">Data: ${formatarData(registroHoje.data)}</div>
+        <div class="escala-hoje-linha">Dia livre para descansar.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="escala-hoje">
+      <div class="escala-hoje-topo">
+        <div class="escala-hoje-titulo">Escala de hoje</div>
+        <div class="card-badge trabalho">Trabalho</div>
+      </div>
+      <div class="escala-hoje-grid">
+        <div class="card-linha"><strong>Entrada</strong>${registroHoje.entrada || "-"}</div>
+        <div class="card-linha"><strong>Saída</strong>${registroHoje.saida || "-"}</div>
+        <div class="card-linha"><strong>Local</strong>${registroHoje.local || "-"}</div>
+        <div class="card-linha"><strong>Sair de casa</strong>${registroHoje.sairCasa || "-"}</div>
+      </div>
+    </section>
+  `;
 }
 
 function toggleMes(id) {
