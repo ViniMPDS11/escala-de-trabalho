@@ -472,12 +472,6 @@ function renderLista() {
     </div>
   `;
 
-  const filtroPassadosInput = document.getElementById("ocultarPassados");
-  filtroPassadosInput?.addEventListener("change", (event) => {
-    localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
-    aplicarFiltroDiasPassadosNoDOM();
-  });
-
   lista.innerHTML += renderEscalaHoje(dados, hoje);
 
   if (!dados.length) {
@@ -580,6 +574,12 @@ function renderLista() {
   });
 
   aplicarFiltroDiasPassadosNoDOM();
+
+    const filtroPassadosInput = document.getElementById("ocultarPassados");
+    filtroPassadosInput?.addEventListener("change", (event) => {
+      localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
+      aplicarFiltroDiasPassadosNoDOM();
+    });
 }
 
 function atualizarBadgeLista(total) {
