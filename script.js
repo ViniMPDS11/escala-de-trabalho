@@ -16,6 +16,8 @@ const defaultConfig = {
 
 let configAtual = carregarConfigLocal();
 let usuarioAtual = null;
+let cardExpandidoData = null;
+let registroEditandoData = null;
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
@@ -36,6 +38,18 @@ const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
 const filtroDiasKey = "escalaFiltroOcultarPassados";
+const editModal = document.getElementById("editModal");
+const closeEditModalBtn = document.getElementById("closeEditModal");
+const cancelEditModalBtn = document.getElementById("cancelEditModal");
+const saveEditModalBtn = document.getElementById("saveEditModal");
+const editDataInput = document.getElementById("editData");
+const editStatusInput = document.getElementById("editStatus");
+const editEntradaInput = document.getElementById("editEntrada");
+const editSaidaInput = document.getElementById("editSaida");
+const editLocalInput = document.getElementById("editLocal");
+const editMonitorInput = document.getElementById("editMonitor");
+const editSairCasaInput = document.getElementById("editSairCasa");
+const editArrumarInput = document.getElementById("editArrumar");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -107,6 +121,17 @@ logoutGoogleBtn.addEventListener("click", async () => {
     alert("Não foi possível deslogar agora. Tente novamente.");
   }
 });
+
+closeEditModalBtn?.addEventListener("click", fecharModalEdicao);
+cancelEditModalBtn?.addEventListener("click", fecharModalEdicao);
+
+editModal?.addEventListener("click", (e) => {
+  if (e.target === editModal) {
+    fecharModalEdicao();
+  }
+});
+
+saveEditModalBtn?.addEventListener("click", salvarEdicaoRegistro);
 
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -532,6 +557,7 @@ function renderLista() {
         div.className = "card";
         div.id = "dia-" + d.data;
         div.dataset.data = d.data;
+        div.addEventListener("click", () => toggleCardExpansao(div));
 
         if (d.data === hoje) div.classList.add("today");
 
@@ -542,6 +568,11 @@ function renderLista() {
               <div class="card-badge folga">Folga</div>
             </div>
             <div class="card-linha folga">Dia livre para descansar ou planejar a próxima jornada.</div>
+            <div class="card-extra">
+              <div class="card-extra-inner">
+                <button class="btn-editar-dia" type="button" data-action="editar">Editar este dia</button>
+              </div>
+            </div>
           `;
         } else {
           div.innerHTML = `
@@ -557,7 +588,22 @@ function renderLista() {
               <div class="card-linha"><strong>Sair de casa</strong>${d.sairCasa}</div>
               <div class="card-linha"><strong>Começar a arrumar</strong>${d.arrumar}</div>
             </div>
+            <div class="card-extra">
+              <div class="card-extra-inner">
+                <button class="btn-editar-dia" type="button" data-action="editar">Editar este dia</button>
+              </div>
+            </div>
           `;
+        }
+
+        const botaoEditar = div.querySelector('[data-action="editar"]');
+        botaoEditar?.addEventListener("click", (event) => {
+          event.stopPropagation();
+          abrirModalEdicao(d.data);
+        });
+
+        if (cardExpandidoData === d.data) {
+          div.classList.add("expanded");
         }
 
         mesInner.appendChild(div);
@@ -580,6 +626,25 @@ function renderLista() {
       localStorage.setItem(filtroDiasKey, event.target.checked ? "1" : "0");
       aplicarFiltroDiasPassadosNoDOM();
     });
+}
+
+function toggleCardExpansao(card) {
+  const dataCard = card?.dataset?.data;
+  if (!dataCard) return;
+
+  const jaExpandido = card.classList.contains("expanded");
+
+  document.querySelectorAll("#lista .card.expanded").forEach((el) => {
+    el.classList.remove("expanded");
+  });
+
+  if (jaExpandido) {
+    cardExpandidoData = null;
+    return;
+  }
+
+  card.classList.add("expanded");
+  cardExpandidoData = dataCard;
 }
 
 function atualizarBadgeLista(total) {
@@ -880,6 +945,84 @@ function lerConfigDoFormulario() {
 
 function obterNomeExibicao(nome) {
   return nome ? nome : "(sem nome configurado)";
+}
+
+function abrirModalEdicao(data) {
+  const dados = JSON.parse(localStorage.getItem("escala") || "[]");
+  const registro = dados.find((item) => item.data === data);
+
+  if (!registro) {
+    alert("Registro não encontrado para edição.");
+    return;
+  }
+
+  registroEditandoData = data;
+  preencherFormularioEdicao(registro);
+  editModal.classList.add("aberto");
+  editModal.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalEdicao() {
+  registroEditandoData = null;
+  editModal.classList.remove("aberto");
+  editModal.setAttribute("aria-hidden", "true");
+}
+
+function preencherFormularioEdicao(registro) {
+  editDataInput.value = formatarData(registro.data);
+  editStatusInput.value = registro.status || "TRABALHO";
+  editEntradaInput.value = registro.entrada || "-";
+  editSaidaInput.value = registro.saida || "-";
+  editLocalInput.value = registro.local || "-";
+  editMonitorInput.value = registro.monitor || "-";
+  editSairCasaInput.value = registro.sairCasa || "-";
+  editArrumarInput.value = registro.arrumar || "-";
+}
+
+async function salvarEdicaoRegistro() {
+  if (!registroEditandoData) return;
+
+  const dados = JSON.parse(localStorage.getItem("escala") || "[]");
+  const indice = dados.findIndex((item) => item.data === registroEditandoData);
+
+  if (indice === -1) {
+    alert("Não foi possível localizar o registro para salvar.");
+    return;
+  }
+
+  const status = editStatusInput.value === "FOLGA" ? "FOLGA" : "TRABALHO";
+  const valorOuTraco = (valor) => {
+    const limpo = (valor || "").trim();
+    return limpo ? limpo : "-";
+  };
+
+  const registroAtualizado = {
+    data: registroEditandoData,
+    status,
+    entrada: status === "FOLGA" ? "-" : valorOuTraco(editEntradaInput.value),
+    saida: status === "FOLGA" ? "-" : valorOuTraco(editSaidaInput.value),
+    local: status === "FOLGA" ? "-" : valorOuTraco(editLocalInput.value).toUpperCase(),
+    monitor: status === "FOLGA" ? "-" : valorOuTraco(editMonitorInput.value),
+    sairCasa: status === "FOLGA" ? "-" : valorOuTraco(editSairCasaInput.value),
+    arrumar: status === "FOLGA" ? "-" : valorOuTraco(editArrumarInput.value)
+  };
+
+  saveEditModalBtn.disabled = true;
+  saveEditModalBtn.innerText = "Salvando...";
+
+  try {
+    dados[indice] = registroAtualizado;
+    localStorage.setItem("escala", JSON.stringify(dados));
+    await salvar(registroAtualizado);
+    fecharModalEdicao();
+    render();
+  } catch (erro) {
+    console.error("Erro ao salvar edição do dia:", erro);
+    alert("Não foi possível salvar agora. Tente novamente.");
+  } finally {
+    saveEditModalBtn.disabled = false;
+    saveEditModalBtn.innerText = "Salvar ajuste";
+  }
 }
 
 function paraHoraMinuto(totalMin) {
