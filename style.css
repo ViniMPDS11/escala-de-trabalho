@@ -561,6 +561,7 @@ h1 {
   border: 1px solid rgba(71, 85, 105, 0.6);
   box-shadow: 0 14px 30px rgba(2, 6, 23, 0.18);
   transition: background 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
 }
 
 .card::before {
@@ -608,6 +609,45 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.card-extra {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  transition: grid-template-rows 0.22s ease, opacity 0.22s ease, margin-top 0.22s ease;
+}
+
+.card-extra-inner {
+  min-height: 0;
+}
+
+.card.expanded {
+  transform: translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.14);
+}
+
+.card.expanded .card-extra {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.btn-editar-dia {
+  width: 100%;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.32), rgba(29, 78, 216, 0.48));
+  color: #dbeafe;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-editar-dia:active {
+  transform: scale(0.98);
 }
 
 .card-data {
@@ -774,6 +814,15 @@ h1 {
   font: inherit;
 }
 
+.time-inputs select {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.6);
+  color: #f8fafc;
+  padding: 10px 8px;
+  font: inherit;
+}
+
 .single-input {
   grid-template-columns: 1fr;
 }
@@ -827,6 +876,11 @@ h1 {
 .btn-logout-google svg {
   width: 16px;
   height: 16px;
+}
+
+.edit-dialog .btn-logout-google {
+  border-color: rgba(148, 163, 184, 0.25);
+  background: linear-gradient(135deg, rgba(71, 85, 105, 0.95), rgba(51, 65, 85, 0.98));
 }
 
 .btn-salvar-config:disabled {

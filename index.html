@@ -124,6 +124,61 @@
   </div>
 </div>
 
+<div class="settings-modal" id="editModal" aria-hidden="true">
+  <div class="settings-dialog edit-dialog" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="settings-topo">
+      <h2 id="editTitle">Editar escala do dia</h2>
+      <button class="settings-close" id="closeEditModal" type="button" aria-label="Fechar edição">✕</button>
+    </div>
+
+    <p class="settings-desc">Faça um ajuste manual e salve para atualizar o localStorage e o Firestore.</p>
+
+    <div class="settings-grid">
+      <div class="settings-row">
+        <strong>Data</strong>
+        <div class="time-inputs single-input">
+          <label>Dia <input type="text" id="editData" readonly></label>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <strong>Status</strong>
+        <div class="time-inputs single-input">
+          <label>Tipo do dia
+            <select id="editStatus">
+              <option value="TRABALHO">Trabalho</option>
+              <option value="FOLGA">Folga</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <strong>Horários</strong>
+        <div class="time-inputs">
+          <label>Entrada <input type="text" id="editEntrada" placeholder="08:00"></label>
+          <label>Saída <input type="text" id="editSaida" placeholder="17:00"></label>
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <strong>Detalhes</strong>
+        <div class="time-inputs">
+          <label>Local <input type="text" id="editLocal" placeholder="BAS ou EGO"></label>
+          <label>Monitor <input type="text" id="editMonitor" placeholder="Nome do monitor"></label>
+          <label>Sair de casa <input type="text" id="editSairCasa" placeholder="06:30"></label>
+          <label>Começar a arrumar <input type="text" id="editArrumar" placeholder="05:30"></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn-salvar-config" id="saveEditModal" type="button">Salvar ajuste</button>
+      <button class="btn-logout-google" id="cancelEditModal" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
