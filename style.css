@@ -89,6 +89,37 @@ h1 {
   font-size: 13px;
 }
 
+.route-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.route-tab {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  color: #cbd5e1;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-tab.ativo {
+  border-color: rgba(96, 165, 250, 0.85);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.32), rgba(29, 78, 216, 0.5));
+  color: #dbeafe;
+}
+
+.page-section {
+  display: none;
+}
+
+.page-section.ativo {
+  display: block;
+}
+
 .quick-actions {
   display: grid;
   gap: 12px;
@@ -646,6 +677,18 @@ h1 {
   cursor: pointer;
 }
 
+.btn-acao-viagem {
+  min-width: 78px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.btn-acao-viagem.excluir {
+  border-color: rgba(252, 165, 165, 0.28);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.48), rgba(185, 28, 28, 0.58));
+  color: #fee2e2;
+}
+
 .btn-editar-dia:active {
   transform: scale(0.98);
 }
@@ -888,6 +931,97 @@ h1 {
   cursor: wait;
 }
 
+.viagens-shell {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.28);
+}
+
+.viagens-topo h2 {
+  font-size: 17px;
+}
+
+.viagens-topo p {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.viagem-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.viagem-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.viagem-grid label,
+.viagens-filtro label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.viagem-grid input,
+.viagens-filtro input {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.6);
+  color: #f8fafc;
+  padding: 10px 8px;
+  font: inherit;
+}
+
+.viagens-filtro {
+  margin-top: 12px;
+}
+
+.viagens-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+}
+
+.viagens-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.viagens-table th,
+.viagens-table td {
+  text-align: left;
+  padding: 10px 9px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  font-size: 12px;
+  color: #dbeafe;
+}
+
+.viagens-table th {
+  font-size: 11px;
+  color: #93c5fd;
+  background: rgba(15, 23, 42, 0.95);
+  position: sticky;
+  top: 0;
+}
+
+.viagens-acoes-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
@@ -947,7 +1081,8 @@ h1 {
   }
 
   .escala-hoje-grid,
-  .settings-actions {
+  .settings-actions,
+  .viagem-grid {
     grid-template-columns: 1fr;
   }
 

@@ -19,6 +19,13 @@
     <p class="hero-subtitle">Consulte sua escala.</p>
   </section>
 
+  <div class="route-tabs" role="tablist" aria-label="Seções da aplicação">
+    <button class="route-tab ativo" id="tabEscala" type="button" data-route="escala">Escala</button>
+    <button class="route-tab" id="tabViagens" type="button" data-route="viagens">Viagens</button>
+  </div>
+
+  <section class="page-section ativo" id="pageEscala">
+
   <div class="quick-actions">
     <button class="btn-google dark" onclick="login()">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
@@ -61,6 +68,51 @@
   <button class="btn-hoje" onclick="irParaHoje()">Ir para hoje</button>
 
   <div id="lista"></div>
+  </section>
+
+  <section class="page-section" id="pageViagens">
+    <div class="viagens-shell">
+      <div class="viagens-topo">
+        <h2>Registro de viagens</h2>
+        <p>Cadastre e acompanhe viagens por dia.</p>
+      </div>
+
+      <form id="viagemForm" class="viagem-form">
+        <div class="viagem-grid">
+          <label>Dia da viagem
+            <input type="date" id="viagemData" required>
+          </label>
+          <label>Prefixo
+            <input type="text" id="viagemPrefixo" maxlength="20" placeholder="Ex.: S26" required>
+          </label>
+          <label>ID do Trem
+            <input type="text" id="viagemTremId" maxlength="40" placeholder="Ex.: H504" required>
+          </label>
+          <label>Estação Inicial
+            <input type="text" id="viagemEstacaoInicial" maxlength="120" placeholder=" Ex.:BAS" required>
+          </label>
+          <label>Hora de Início
+            <input type="text" id="viagemHoraInicio" inputmode="numeric" placeholder="HH:MM" maxlength="5" required>
+          </label>
+          <label>Estação Final
+            <input type="text" id="viagemEstacaoFinal" maxlength="120" placeholder="Ex.: CVN" required>
+          </label>
+          <label>Hora Final
+            <input type="text" id="viagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5" required>
+          </label>
+        </div>
+        <button class="btn-salvar-config" id="salvarViagemBtn" type="submit">Registrar viagem</button>
+      </form>
+
+      <div class="viagens-filtro">
+        <label>Dia dos registros
+          <input type="date" id="filtroDiaViagens">
+        </label>
+      </div>
+
+      <div id="viagensTabelaContainer"></div>
+    </div>
+  </section>
 
 </div>
 
@@ -120,6 +172,37 @@
         </svg>
         <span>Deslogar Google</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<div class="settings-modal" id="editViagemModal" aria-hidden="true">
+  <div class="settings-dialog edit-dialog" role="dialog" aria-modal="true" aria-labelledby="editViagemTitle">
+    <div class="settings-topo">
+      <h2 id="editViagemTitle">Editar viagem</h2>
+      <button class="settings-close" id="closeEditViagemModal" type="button" aria-label="Fechar edição de viagem">✕</button>
+    </div>
+
+    <p class="settings-desc">Ajuste os dados da viagem e salve para atualizar localStorage e Firestore.</p>
+
+    <div class="settings-grid">
+      <div class="settings-row">
+        <strong>Dados da viagem</strong>
+        <div class="time-inputs single-input">
+          <label>Dia da viagem <input type="date" id="editViagemData"></label>
+          <label>Prefixo <input type="text" id="editViagemPrefixo" maxlength="20"></label>
+          <label>ID do Trem <input type="text" id="editViagemTremId" maxlength="40"></label>
+          <label>Estação Inicial <input type="text" id="editViagemEstacaoInicial" maxlength="120"></label>
+          <label>Hora de Início <input type="text" id="editViagemHoraInicio" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
+          <label>Estação Final <input type="text" id="editViagemEstacaoFinal" maxlength="120"></label>
+          <label>Hora Final <input type="text" id="editViagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn-salvar-config" id="saveEditViagemModal" type="button">Salvar viagem</button>
+      <button class="btn-logout-google" id="cancelEditViagemModal" type="button">Cancelar</button>
     </div>
   </div>
 </div>
