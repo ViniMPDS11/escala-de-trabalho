@@ -18,6 +18,8 @@ let configAtual = carregarConfigLocal();
 let usuarioAtual = null;
 let cardExpandidoData = null;
 let registroEditandoData = null;
+let viagemEditandoId = null;
+let viagensRegistros = carregarViagensLocal();
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
@@ -50,6 +52,31 @@ const editLocalInput = document.getElementById("editLocal");
 const editMonitorInput = document.getElementById("editMonitor");
 const editSairCasaInput = document.getElementById("editSairCasa");
 const editArrumarInput = document.getElementById("editArrumar");
+const pageEscala = document.getElementById("pageEscala");
+const pageViagens = document.getElementById("pageViagens");
+const tabEscala = document.getElementById("tabEscala");
+const tabViagens = document.getElementById("tabViagens");
+const viagemForm = document.getElementById("viagemForm");
+const viagemDataInput = document.getElementById("viagemData");
+const viagemPrefixoInput = document.getElementById("viagemPrefixo");
+const viagemTremIdInput = document.getElementById("viagemTremId");
+const viagemEstacaoInicialInput = document.getElementById("viagemEstacaoInicial");
+const viagemHoraInicioInput = document.getElementById("viagemHoraInicio");
+const viagemEstacaoFinalInput = document.getElementById("viagemEstacaoFinal");
+const viagemHoraFinalInput = document.getElementById("viagemHoraFinal");
+const filtroDiaViagensInput = document.getElementById("filtroDiaViagens");
+const viagensTabelaContainer = document.getElementById("viagensTabelaContainer");
+const editViagemModal = document.getElementById("editViagemModal");
+const closeEditViagemModalBtn = document.getElementById("closeEditViagemModal");
+const cancelEditViagemModalBtn = document.getElementById("cancelEditViagemModal");
+const saveEditViagemModalBtn = document.getElementById("saveEditViagemModal");
+const editViagemDataInput = document.getElementById("editViagemData");
+const editViagemPrefixoInput = document.getElementById("editViagemPrefixo");
+const editViagemTremIdInput = document.getElementById("editViagemTremId");
+const editViagemEstacaoInicialInput = document.getElementById("editViagemEstacaoInicial");
+const editViagemHoraInicioInput = document.getElementById("editViagemHoraInicio");
+const editViagemEstacaoFinalInput = document.getElementById("editViagemEstacaoFinal");
+const editViagemHoraFinalInput = document.getElementById("editViagemHoraFinal");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -132,6 +159,27 @@ editModal?.addEventListener("click", (e) => {
 });
 
 saveEditModalBtn?.addEventListener("click", salvarEdicaoRegistro);
+tabEscala?.addEventListener("click", () => navegarPara("escala"));
+tabViagens?.addEventListener("click", () => navegarPara("viagens"));
+window.addEventListener("hashchange", aplicarRotaPelaHash);
+
+viagemForm?.addEventListener("submit", salvarNovaViagem);
+filtroDiaViagensInput?.addEventListener("change", renderTabelaViagens);
+closeEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
+cancelEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
+saveEditViagemModalBtn?.addEventListener("click", salvarEdicaoViagem);
+
+editViagemModal?.addEventListener("click", (e) => {
+  if (e.target === editViagemModal) {
+    fecharModalEdicaoViagem();
+  }
+});
+
+[viagemHoraInicioInput, viagemHoraFinalInput, editViagemHoraInicioInput, editViagemHoraFinalInput].forEach((input) => {
+  if (!input) return;
+  input.addEventListener("input", () => aplicarMascaraHora(input));
+  input.addEventListener("blur", () => validarHoraInput(input));
+});
 
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -153,6 +201,8 @@ firebase.auth().onAuthStateChanged(user => {
 
 function limparDadosEscalaLocal() {
   localStorage.setItem("escala", "[]");
+  localStorage.setItem("viagensRegistros", "[]");
+  viagensRegistros = [];
 }
 
 async function carregarDados() {
@@ -403,8 +453,10 @@ function mudarMes(v) {
 }
 
 function render() {
+  aplicarRotaPelaHash();
   renderCalendar();
   renderLista();
+  renderTabelaViagens();
 }
 
 function renderCalendar() {
@@ -1042,6 +1094,306 @@ function paraMinutosTotais(horasRaw, minutosRaw) {
   return horas * 60 + minutos;
 }
 
+function navegarPara(rota) {
+  const destino = rota === "viagens" ? "viagens" : "escala";
+  if (window.location.hash !== `#${destino}`) {
+    window.location.hash = destino;
+    return;
+  }
+  aplicarRotaPelaHash();
+}
+
+function aplicarRotaPelaHash() {
+  const rota = window.location.hash.replace("#", "") === "viagens" ? "viagens" : "escala";
+  const mostrarViagens = rota === "viagens";
+
+  pageEscala?.classList.toggle("ativo", !mostrarViagens);
+  pageViagens?.classList.toggle("ativo", mostrarViagens);
+  tabEscala?.classList.toggle("ativo", !mostrarViagens);
+  tabViagens?.classList.toggle("ativo", mostrarViagens);
+}
+
+function carregarViagensLocal() {
+  try {
+    const raw = localStorage.getItem("viagensRegistros") || "[]";
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarViagensLocal() {
+  localStorage.setItem("viagensRegistros", JSON.stringify(viagensRegistros));
+}
+
+async function carregarViagens() {
+  if (!usuarioAtual) {
+    viagensRegistros = carregarViagensLocal();
+    selecionarUltimoDiaViagens();
+    renderTabelaViagens();
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection("viagens").get();
+    viagensRegistros = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    salvarViagensLocal();
+  } catch (erro) {
+    console.warn("Não foi possível carregar viagens do banco. Usando cache local.", erro);
+    viagensRegistros = carregarViagensLocal();
+  }
+
+  selecionarUltimoDiaViagens();
+  renderTabelaViagens();
+}
+
+function selecionarUltimoDiaViagens() {
+  if (!filtroDiaViagensInput || !viagemDataInput) return;
+
+  const ultimoDia = [...viagensRegistros]
+    .map((item) => item.data)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+
+  const dataPadrao = ultimoDia || formatKey(new Date());
+  filtroDiaViagensInput.value = dataPadrao;
+  viagemDataInput.value = dataPadrao;
+}
+
+async function salvarNovaViagem(event) {
+  event.preventDefault();
+
+  const payload = coletarDadosViagem({
+    data: viagemDataInput.value,
+    prefixo: viagemPrefixoInput.value,
+    tremId: viagemTremIdInput.value,
+    estacaoInicial: viagemEstacaoInicialInput.value,
+    horaInicio: viagemHoraInicioInput.value,
+    estacaoFinal: viagemEstacaoFinalInput.value,
+    horaFinal: viagemHoraFinalInput.value
+  });
+
+  if (!payload) return;
+
+  const registro = { ...payload, criadoEm: new Date().toISOString() };
+
+  try {
+    if (usuarioAtual) {
+      const docRef = await db.collection("viagens").add(registro);
+      registro.id = docRef.id;
+    } else {
+      registro.id = (window.crypto?.randomUUID?.() || `local-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    }
+
+    viagensRegistros.push(registro);
+    salvarViagensLocal();
+    filtroDiaViagensInput.value = registro.data;
+    viagemForm.reset();
+    viagemDataInput.value = registro.data;
+    renderTabelaViagens();
+  } catch (erro) {
+    console.error("Erro ao salvar viagem:", erro);
+    alert("Não foi possível registrar a viagem agora.");
+  }
+}
+
+function coletarDadosViagem(campos) {
+  const data = (campos.data || "").trim();
+  const prefixo = (campos.prefixo || "").trim().toUpperCase();
+  const tremId = (campos.tremId || "").trim().toUpperCase();
+  const estacaoInicial = (campos.estacaoInicial || "").trim();
+  const horaInicio = normalizarHoraValida((campos.horaInicio || "").trim());
+  const estacaoFinal = (campos.estacaoFinal || "").trim();
+  const horaFinal = normalizarHoraValida((campos.horaFinal || "").trim());
+
+  if (!data || !prefixo || !tremId || !estacaoInicial || !horaInicio || !estacaoFinal || !horaFinal) {
+    alert("Preencha todos os campos da viagem com valores válidos.");
+    return null;
+  }
+
+  return { data, prefixo, tremId, estacaoInicial, horaInicio, estacaoFinal, horaFinal };
+}
+
+function aplicarMascaraHora(input) {
+  const digitos = (input.value || "").replace(/\D/g, "").slice(0, 4);
+  if (digitos.length <= 2) {
+    input.value = digitos;
+    return;
+  }
+  input.value = `${digitos.slice(0, 2)}:${digitos.slice(2)}`;
+}
+
+function normalizarHoraValida(valor) {
+  const limpo = (valor || "").replace(/\D/g, "").slice(0, 4);
+  if (limpo.length !== 4) return null;
+
+  const horas = Number(limpo.slice(0, 2));
+  const minutos = Number(limpo.slice(2, 4));
+
+  if (!Number.isInteger(horas) || !Number.isInteger(minutos)) return null;
+  if (horas < 0 || horas > 23 || minutos < 0 || minutos > 59) return null;
+
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+}
+
+function validarHoraInput(input) {
+  const normalizada = normalizarHoraValida(input.value);
+  if (!normalizada) {
+    input.setCustomValidity("Digite um horário válido no formato brasileiro (HH:MM).");
+    input.reportValidity();
+    return false;
+  }
+  input.setCustomValidity("");
+  input.value = normalizada;
+  return true;
+}
+
+function renderTabelaViagens() {
+  if (!viagensTabelaContainer) return;
+
+  const diaSelecionado = filtroDiaViagensInput?.value;
+  if (!diaSelecionado) {
+    viagensTabelaContainer.innerHTML = '<div class="lista-vazia">Selecione um dia para visualizar os registros.</div>';
+    return;
+  }
+
+  const registrosDia = viagensRegistros
+    .filter((item) => item.data === diaSelecionado)
+    .sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
+
+  if (!registrosDia.length) {
+    viagensTabelaContainer.innerHTML = `<div class="lista-vazia">Nenhuma viagem registrada em ${formatarData(diaSelecionado)}.</div>`;
+    return;
+  }
+
+  viagensTabelaContainer.innerHTML = `
+    <div class="viagens-table-wrap">
+      <table class="viagens-table">
+        <thead>
+          <tr>
+            <th>Dia</th>
+            <th>Prefixo</th>
+            <th>ID do Trem</th>
+            <th>Estação Inicial</th>
+            <th>Hora de Início</th>
+            <th>Estação Final</th>
+            <th>Hora Final</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${registrosDia.map((item) => `
+            <tr>
+              <td>${formatarData(item.data)}</td>
+              <td>${item.prefixo || "-"}</td>
+              <td>${item.tremId || "-"}</td>
+              <td>${item.estacaoInicial || "-"}</td>
+              <td>${item.horaInicio || "-"}</td>
+              <td>${item.estacaoFinal || "-"}</td>
+              <td>${item.horaFinal || "-"}</td>
+              <td class="viagens-acoes-cell">
+                <button type="button" class="btn-editar-dia btn-acao-viagem" data-action="editar" data-id="${item.id}">Editar</button>
+                <button type="button" class="btn-editar-dia btn-acao-viagem excluir" data-action="excluir" data-id="${item.id}">Excluir</button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  viagensTabelaContainer.querySelectorAll('[data-action="editar"]').forEach((botao) => {
+    botao.addEventListener("click", () => abrirModalEdicaoViagem(botao.dataset.id));
+  });
+
+  viagensTabelaContainer.querySelectorAll('[data-action="excluir"]').forEach((botao) => {
+    botao.addEventListener("click", () => excluirViagem(botao.dataset.id));
+  });
+}
+
+function abrirModalEdicaoViagem(id) {
+  const registro = viagensRegistros.find((item) => item.id === id);
+  if (!registro) return;
+
+  viagemEditandoId = id;
+  editViagemDataInput.value = registro.data || "";
+  editViagemPrefixoInput.value = registro.prefixo || "";
+  editViagemTremIdInput.value = registro.tremId || "";
+  editViagemEstacaoInicialInput.value = registro.estacaoInicial || "";
+  editViagemHoraInicioInput.value = registro.horaInicio || "";
+  editViagemEstacaoFinalInput.value = registro.estacaoFinal || "";
+  editViagemHoraFinalInput.value = registro.horaFinal || "";
+  editViagemModal.classList.add("aberto");
+  editViagemModal.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalEdicaoViagem() {
+  viagemEditandoId = null;
+  editViagemModal.classList.remove("aberto");
+  editViagemModal.setAttribute("aria-hidden", "true");
+}
+
+async function salvarEdicaoViagem() {
+  if (!viagemEditandoId) return;
+
+  const payload = coletarDadosViagem({
+    data: editViagemDataInput.value,
+    prefixo: editViagemPrefixoInput.value,
+    tremId: editViagemTremIdInput.value,
+    estacaoInicial: editViagemEstacaoInicialInput.value,
+    horaInicio: editViagemHoraInicioInput.value,
+    estacaoFinal: editViagemEstacaoFinalInput.value,
+    horaFinal: editViagemHoraFinalInput.value
+  });
+
+  if (!payload) return;
+
+  const indice = viagensRegistros.findIndex((item) => item.id === viagemEditandoId);
+  if (indice === -1) return;
+
+  const atualizado = { ...viagensRegistros[indice], ...payload };
+
+  saveEditViagemModalBtn.disabled = true;
+  saveEditViagemModalBtn.innerText = "Salvando...";
+
+  try {
+    viagensRegistros[indice] = atualizado;
+    salvarViagensLocal();
+    if (usuarioAtual) {
+      await db.collection("viagens").doc(viagemEditandoId).set(atualizado, { merge: true });
+    }
+    filtroDiaViagensInput.value = atualizado.data;
+    fecharModalEdicaoViagem();
+    renderTabelaViagens();
+  } catch (erro) {
+    console.error("Erro ao editar viagem:", erro);
+    alert("Não foi possível salvar a edição da viagem.");
+  } finally {
+    saveEditViagemModalBtn.disabled = false;
+    saveEditViagemModalBtn.innerText = "Salvar viagem";
+  }
+}
+
+async function excluirViagem(id) {
+  const confirmar = window.confirm("Deseja realmente excluir esta viagem?");
+  if (!confirmar) return;
+
+  try {
+    viagensRegistros = viagensRegistros.filter((item) => item.id !== id);
+    salvarViagensLocal();
+    if (usuarioAtual) {
+      await db.collection("viagens").doc(id).delete();
+    }
+    selecionarUltimoDiaViagens();
+    renderTabelaViagens();
+  } catch (erro) {
+    console.error("Erro ao excluir viagem:", erro);
+    alert("Não foi possível excluir a viagem.");
+  }
+}
+
 async function init() {
   try {
     configAtual = await carregarConfigUsuario();
@@ -1051,6 +1403,7 @@ async function init() {
 
   try {
     await carregarDados();
+    await carregarViagens();
     render();
   } catch (e) {
     console.error("Erro ao carregar dados:", e);
