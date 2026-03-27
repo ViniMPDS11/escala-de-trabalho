@@ -178,7 +178,6 @@ editViagemModal?.addEventListener("click", (e) => {
 [viagemHoraInicioInput, viagemHoraFinalInput, editViagemHoraInicioInput, editViagemHoraFinalInput].forEach((input) => {
   if (!input) return;
   input.addEventListener("input", () => aplicarMascaraHora(input));
-  input.addEventListener("blur", () => validarHoraInput(input));
 });
 
 function login() {
@@ -1136,7 +1135,7 @@ async function carregarViagens() {
   }
 
   try {
-    const snapshot = await db.collection("viagens").get();
+    const snapshot = await db.collection("Prefix").get();
     viagensRegistros = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     salvarViagensLocal();
   } catch (erro) {
@@ -1181,7 +1180,7 @@ async function salvarNovaViagem(event) {
 
   try {
     if (usuarioAtual) {
-      const docRef = await db.collection("viagens").add(registro);
+      const docRef = await db.collection("Prefix").add(registro);
       registro.id = docRef.id;
     } else {
       registro.id = (window.crypto?.randomUUID?.() || `local-${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -1208,7 +1207,12 @@ function coletarDadosViagem(campos) {
   const estacaoFinal = (campos.estacaoFinal || "").trim();
   const horaFinal = normalizarHoraValida((campos.horaFinal || "").trim());
 
-  if (!data || !prefixo || !tremId || !estacaoInicial || !horaInicio || !estacaoFinal || !horaFinal) {
+  if (!horaInicio || !horaFinal) {
+    alert("Horários inválidos. Use o formato HH:MM (00:00 até 23:59).");
+    return null;
+  }
+
+  if (!data || !prefixo || !tremId || !estacaoInicial || !estacaoFinal) {
     alert("Preencha todos os campos da viagem com valores válidos.");
     return null;
   }
@@ -1236,18 +1240,6 @@ function normalizarHoraValida(valor) {
   if (horas < 0 || horas > 23 || minutos < 0 || minutos > 59) return null;
 
   return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
-}
-
-function validarHoraInput(input) {
-  const normalizada = normalizarHoraValida(input.value);
-  if (!normalizada) {
-    input.setCustomValidity("Digite um horário válido no formato brasileiro (HH:MM).");
-    input.reportValidity();
-    return false;
-  }
-  input.setCustomValidity("");
-  input.value = normalizada;
-  return true;
 }
 
 function renderTabelaViagens() {
@@ -1362,7 +1354,7 @@ async function salvarEdicaoViagem() {
     viagensRegistros[indice] = atualizado;
     salvarViagensLocal();
     if (usuarioAtual) {
-      await db.collection("viagens").doc(viagemEditandoId).set(atualizado, { merge: true });
+      await db.collection("Prefix").doc(viagemEditandoId).set(atualizado, { merge: true });
     }
     filtroDiaViagensInput.value = atualizado.data;
     fecharModalEdicaoViagem();
@@ -1384,7 +1376,7 @@ async function excluirViagem(id) {
     viagensRegistros = viagensRegistros.filter((item) => item.id !== id);
     salvarViagensLocal();
     if (usuarioAtual) {
-      await db.collection("viagens").doc(id).delete();
+      await db.collection("Prefix").doc(id).delete();
     }
     selecionarUltimoDiaViagens();
     renderTabelaViagens();
