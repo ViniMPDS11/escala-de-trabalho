@@ -1921,3 +1921,71 @@ body.light-mode .settings-close {
 body.light-mode .btn-config svg {
   color: #2f4766 !important;
 }
+
+/* Correções pontuais finais (modo claro) */
+.btn-config {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+body.light-mode .btn-config {
+  box-shadow: 0 2px 6px rgba(30, 52, 84, 0.1) !important;
+}
+
+body.light-mode .btn-hoje {
+  box-shadow: 0 3px 8px rgba(30, 52, 84, 0.12) !important;
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input,
+body.light-mode #viagemObservacao,
+body.light-mode #editViagemObservacao {
+  background: #e7eef8 !important;
+  color: #1f2a3a !important;
+  border-color: #a9bfd8 !important;
+}
+
+body.light-mode .upload {
+  box-shadow: 0 4px 10px rgba(46, 138, 101, 0.14) !important;
+}
+
+body.light-mode .upload-text,
+body.light-mode .upload small,
+body.light-mode .btn-copy,
+body.light-mode .upload::after {
+  color: #f8fbff !important;
+}
+
+body.light-mode .escala-hoje-titulo,
+body.light-mode .escala-hoje-linha,
+body.light-mode .escala-hoje-grid {
+  color: #23364f !important;
+}
+
+body.light-mode .escala-hoje .card-badge.trabalho,
+body.light-mode .escala-hoje .card-badge {
+  background: #d5e4f7 !important;
+  color: #25496f !important;
+  border: 1px solid #a9c2de !important;
+}
+
+body.light-mode .filtro-passados,
+body.light-mode .filtro-passados span,
+body.light-mode .toggle-retroativa span {
+  color: #3f5673 !important;
+}
+
+body.light-mode .ano-header {
+  background: #e2ebf7 !important;
+  border-color: #bfd0e5 !important;
+}
+
+body.light-mode .lista-badge {
+  background: #cfdff1 !important;
+  color: #2a4768 !important;
+  border-color: #abc2db !important;
+}
