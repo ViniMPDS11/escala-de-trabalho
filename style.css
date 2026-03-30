@@ -1830,3 +1830,94 @@ body.light-mode .btn-observacao.ativo {
   color: #fff !important;
   border-color: #277953 !important;
 }
+
+/* Ajustes finais de contraste/spacing no modo claro */
+.btn-config svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.toggle-theme {
+  margin-top: 10px;
+}
+
+.viagens-filtro {
+  margin-top: 16px;
+}
+
+.viagens-table-wrap {
+  margin-top: 16px;
+}
+
+body.light-mode .btn-config {
+  box-shadow: 0 2px 8px rgba(30, 52, 84, 0.12) !important;
+}
+
+body.light-mode .btn-scroll-top {
+  box-shadow: 0 4px 12px rgba(30, 52, 84, 0.16) !important;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close,
+body.light-mode .route-menu-toggle,
+body.light-mode .route-option,
+body.light-mode .route-menu-list,
+body.light-mode .mes-header,
+body.light-mode .ano-header,
+body.light-mode .settings-row,
+body.light-mode .card,
+body.light-mode .card-linha,
+body.light-mode .viagens-table,
+body.light-mode .viagens-table th,
+body.light-mode .viagens-table td,
+body.light-mode .lista-vazia,
+body.light-mode .viagens-shell,
+body.light-mode #lista,
+body.light-mode .calendar-shell,
+body.light-mode .settings-dialog,
+body.light-mode .app,
+body.light-mode .header-inner {
+  color: #1f2a3a !important;
+}
+
+body.light-mode .btn-hoje,
+body.light-mode .mes-controle button,
+body.light-mode .btn-salvar-config,
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem,
+body.light-mode .btn-logout-google,
+body.light-mode .btn-scroll-top,
+body.light-mode .upload {
+  color: #f8fbff !important;
+}
+
+body.light-mode .brand-fallback,
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .route-menu-toggle,
+body.light-mode .route-option,
+body.light-mode .settings-row strong,
+body.light-mode .viagens-table th {
+  color: #23364f !important;
+}
+
+body.light-mode .day-info,
+body.light-mode .hero-subtitle,
+body.light-mode .settings-desc,
+body.light-mode .lista-subtitulo,
+body.light-mode .time-inputs label,
+body.light-mode .viagem-grid label,
+body.light-mode .viagens-filtro label,
+body.light-mode .toggle-retroativa {
+  color: #566b85 !important;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #d9e5f3 !important;
+}
+
+body.light-mode .btn-config svg {
+  color: #2f4766 !important;
+}
