@@ -1354,40 +1354,153 @@ h1 {
   }
 }
 
-body.light-mode .btn-scroll-top {
-  box-shadow: 0 10px 22px rgba(29, 78, 216, 0.3);
+/* Tema claro refinado */
+body.light-mode {
+  background: linear-gradient(180deg, #cfd8e6 0%, #e7edf6 100%);
 }
 
-body.light-mode .card,
+body.light-mode .app,
+body.light-mode .header-inner,
 body.light-mode #lista,
 body.light-mode .calendar-shell,
-body.light-mode .escala-hoje {
-  background: #ffffff;
+body.light-mode .viagens-shell,
+body.light-mode .settings-dialog,
+body.light-mode .escala-hoje,
+body.light-mode .card,
+body.light-mode .day,
+body.light-mode .empty-day {
+  background: linear-gradient(180deg, #f6f9ff, #eaf1fb);
+  border-color: rgba(100, 116, 139, 0.28);
   color: #0f172a;
-  border-color: rgba(148, 163, 184, 0.3);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
+body.light-mode .settings-modal {
+  background: rgba(30, 41, 59, 0.42);
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
 body.light-mode .time-inputs input,
 body.light-mode .time-inputs select,
 body.light-mode .viagem-grid input,
 body.light-mode .viagem-grid textarea,
 body.light-mode .viagens-filtro input,
-body.light-mode .route-menu-toggle,
-body.light-mode .route-menu-list {
-  background: #f8fafc;
+body.light-mode .upload::after {
+  background: #e6edf8;
+  border-color: rgba(100, 116, 139, 0.34);
   color: #0f172a;
-  border-color: rgba(148, 163, 184, 0.4);
 }
 
 body.light-mode .route-option {
   color: #334155;
 }
 
+body.light-mode .route-option.ativo,
+body.light-mode .route-tab.ativo {
+  color: #dbeafe;
+}
+
+body.light-mode .upload {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 14px 24px rgba(34, 197, 94, 0.2);
+}
+
+body.light-mode .btn-google {
+  color: #0f172a;
+  background: linear-gradient(180deg, #f8fafc, #e5edf8);
+  border-color: rgba(100, 116, 139, 0.32);
+}
+
+body.light-mode .btn-google small,
+body.light-mode .hero-subtitle,
+body.light-mode .viagens-topo p,
+body.light-mode .settings-desc,
 body.light-mode .lista-subtitulo,
 body.light-mode .card-linha strong,
+body.light-mode .toggle-retroativa,
 body.light-mode .time-inputs label,
 body.light-mode .viagem-grid label,
 body.light-mode .viagens-filtro label,
-body.light-mode .toggle-retroativa {
+body.light-mode .week-header div,
+body.light-mode #mesAtual {
   color: #475569;
+}
+
+body.light-mode .day-number,
+body.light-mode .card-data,
+body.light-mode .lista-titulo,
+body.light-mode .settings-topo h2,
+body.light-mode .viagens-topo h2 {
+  color: #0f172a;
+}
+
+body.light-mode .day-info,
+body.light-mode .card-linha {
+  color: #1e293b;
+  background: #eef3fb;
+}
+
+body.light-mode .day.folga {
+  background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+}
+
+body.light-mode .day.hoje,
+body.light-mode .card.today,
+body.light-mode .escala-hoje {
+  background: linear-gradient(180deg, #dcfce7, #bbf7d0);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+body.light-mode .btn-hoje,
+body.light-mode .mes-controle button,
+body.light-mode .btn-salvar-config {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: rgba(100, 116, 139, 0.36);
+}
+
+body.light-mode .viagens-table {
+  background: #eef3fb;
+}
+
+body.light-mode .viagens-table th {
+  background: #dbe7f8;
+  color: #1d4ed8;
+}
+
+body.light-mode .viagens-table td {
+  color: #0f172a;
+  border-color: rgba(100, 116, 139, 0.24);
+}
+
+body.light-mode .viagens-table tbody tr:nth-child(2n) {
+  background: #e3ebf8;
+}
+
+body.light-mode .lista-vazia {
+  background: #e2e8f0;
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #475569;
+}
+
+body.light-mode .btn-observacao {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.35);
+}
+
+body.light-mode .btn-observacao.ativo {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+}
+
+body.light-mode .btn-scroll-top {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
 }
