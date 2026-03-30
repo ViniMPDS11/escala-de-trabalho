@@ -2027,3 +2027,12 @@ body.light-mode .day-num,
 body.light-mode .day-info {
   color: #2b3f58 !important;
 }
+
+/* Correções de espaçamento/consistência solicitadas */
+body.light-mode .day-info {
+  background: transparent !important;
+}
+
+#viagensTabelaContainer .lista-vazia {
+  margin-top: 16px;
+}
