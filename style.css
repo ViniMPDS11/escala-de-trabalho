@@ -1504,3 +1504,114 @@ body.light-mode .btn-observacao.ativo {
 body.light-mode .btn-scroll-top {
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
 }
+
+/* Ajuste fino de paleta no modo claro (menos contraste estourado) */
+body.light-mode .brand-fallback,
+body.light-mode .lista-titulo,
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .mes-header::after {
+  color: #1e293b;
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
+body.light-mode .route-option,
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #dbe4f1;
+  border-color: rgba(71, 85, 105, 0.28);
+  color: #1e293b;
+}
+
+body.light-mode .route-option.ativo {
+  background: #c7d5e9;
+  border-color: rgba(59, 130, 246, 0.38);
+  color: #1e3a5f;
+}
+
+body.light-mode .mes-controle button,
+body.light-mode .btn-hoje,
+body.light-mode .btn-salvar-config {
+  background: #3f5f87;
+  color: #f8fafc;
+}
+
+body.light-mode .mes-controle button:hover,
+body.light-mode .btn-hoje:hover,
+body.light-mode .btn-salvar-config:hover {
+  background: #365475;
+}
+
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .settings-row,
+body.light-mode .card-linha,
+body.light-mode .lista-vazia {
+  background: #e2e8f2;
+  border-color: rgba(71, 85, 105, 0.2);
+}
+
+body.light-mode .filtro-passados input,
+body.light-mode .toggle-retroativa input {
+  background: #d6dfec;
+  border-color: rgba(71, 85, 105, 0.35);
+}
+
+body.light-mode .filtro-passados input:checked,
+body.light-mode .toggle-retroativa input:checked {
+  background: #4c6a93;
+  border-color: rgba(51, 65, 85, 0.45);
+  box-shadow: 0 0 0 3px rgba(76, 106, 147, 0.18);
+}
+
+body.light-mode .card.today,
+body.light-mode .day.hoje,
+body.light-mode .escala-hoje {
+  background: linear-gradient(180deg, #d9e7f7, #c9ddef);
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+body.light-mode .card-badge.trabalho {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1e3a5f;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+body.light-mode .card-badge.folga {
+  background: rgba(100, 116, 139, 0.15);
+  color: #334155;
+}
+
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem {
+  background: #516b8e;
+  border-color: rgba(51, 65, 85, 0.25);
+  color: #f8fafc;
+}
+
+body.light-mode .btn-acao-viagem.excluir,
+body.light-mode .btn-logout-google {
+  background: #9b4a4a;
+  border-color: rgba(127, 29, 29, 0.22);
+  color: #fff;
+}
+
+body.light-mode .viagens-table th {
+  background: #d3dfef;
+  color: #334155;
+}
+
+body.light-mode .viagens-table tbody tr:nth-child(2n) {
+  background: #dde7f4;
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input {
+  background: #eef3fa;
+  color: #1e293b;
+  border-color: rgba(71, 85, 105, 0.28);
+}
