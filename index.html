@@ -9,12 +9,19 @@
 </head>
 <body>
 
+<header class="app-header">
+  <div class="header-inner">
+    <img class="brand-logo" src="./trivia-trens-logo.png" alt="Trivia Trens" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+    <h1 class="brand-fallback">Trivia Trens</h1>
+    <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
+  </div>
+</header>
+
 <div class="app">
 
   <section class="hero">
     <div class="hero-header">
       <h1>Escala de Trabalho</h1>
-      <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
     </div>
     <p class="hero-subtitle">Consulte sua escala.</p>
   </section>
@@ -99,6 +106,9 @@
           </label>
           <label>Hora Final
             <input type="text" id="viagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5" required>
+          </label>
+          <label class="campo-observacao">Observação
+            <textarea id="viagemObservacao" maxlength="500" placeholder="Observações da viagem (opcional)"></textarea>
           </label>
         </div>
         <button class="btn-salvar-config" id="salvarViagemBtn" type="submit">Registrar viagem</button>
@@ -196,6 +206,7 @@
           <label>Hora de Início <input type="text" id="editViagemHoraInicio" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
           <label>Estação Final <input type="text" id="editViagemEstacaoFinal" maxlength="120"></label>
           <label>Hora Final <input type="text" id="editViagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
+          <label>Observação <textarea id="editViagemObservacao" maxlength="500" placeholder="Observações da viagem (opcional)"></textarea></label>
         </div>
       </div>
     </div>
@@ -286,6 +297,22 @@
 
   window.db = firebase.firestore();
 </script>
+
+
+<div class="settings-modal" id="viewObservacaoModal" aria-hidden="true">
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="viewObservacaoTitle">
+    <div class="settings-topo">
+      <h2 id="viewObservacaoTitle">Observação da viagem</h2>
+      <button class="settings-close" id="closeViewObservacaoModal" type="button" aria-label="Fechar observação">✕</button>
+    </div>
+    <p class="settings-desc" id="observacaoConteudo">Sem observação cadastrada.</p>
+    <div class="settings-actions">
+      <button class="btn-salvar-config" id="okViewObservacaoModal" type="button">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<button class="btn-scroll-top" id="scrollTopBtn" type="button" aria-label="Voltar para o topo">↑</button>
 
 <script src="script.js"></script>
 </body>

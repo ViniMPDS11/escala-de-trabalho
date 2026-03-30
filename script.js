@@ -64,6 +64,7 @@ const viagemEstacaoInicialInput = document.getElementById("viagemEstacaoInicial"
 const viagemHoraInicioInput = document.getElementById("viagemHoraInicio");
 const viagemEstacaoFinalInput = document.getElementById("viagemEstacaoFinal");
 const viagemHoraFinalInput = document.getElementById("viagemHoraFinal");
+const viagemObservacaoInput = document.getElementById("viagemObservacao");
 const filtroDiaViagensInput = document.getElementById("filtroDiaViagens");
 const viagensTabelaContainer = document.getElementById("viagensTabelaContainer");
 const editViagemModal = document.getElementById("editViagemModal");
@@ -77,6 +78,12 @@ const editViagemEstacaoInicialInput = document.getElementById("editViagemEstacao
 const editViagemHoraInicioInput = document.getElementById("editViagemHoraInicio");
 const editViagemEstacaoFinalInput = document.getElementById("editViagemEstacaoFinal");
 const editViagemHoraFinalInput = document.getElementById("editViagemHoraFinal");
+const editViagemObservacaoInput = document.getElementById("editViagemObservacao");
+const viewObservacaoModal = document.getElementById("viewObservacaoModal");
+const closeViewObservacaoModalBtn = document.getElementById("closeViewObservacaoModal");
+const okViewObservacaoModalBtn = document.getElementById("okViewObservacaoModal");
+const observacaoConteudo = document.getElementById("observacaoConteudo");
+const scrollTopBtn = document.getElementById("scrollTopBtn");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -137,7 +144,7 @@ saveSettingsBtn.addEventListener("click", async () => {
   fecharConfiguracoes();
 });
 
-logoutGoogleBtn.addEventListener("click", async () => {
+logoutGoogleBtn?.addEventListener("click", async () => {
   try {
     await firebase.auth().signOut();
     limparDadosEscalaLocal();
@@ -168,6 +175,21 @@ filtroDiaViagensInput?.addEventListener("change", renderTabelaViagens);
 closeEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
 cancelEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
 saveEditViagemModalBtn?.addEventListener("click", salvarEdicaoViagem);
+closeViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
+okViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
+
+viewObservacaoModal?.addEventListener("click", (e) => {
+  if (e.target === viewObservacaoModal) {
+    fecharModalObservacao();
+  }
+});
+
+scrollTopBtn?.addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+window.addEventListener("scroll", controlarBotaoTopo);
+controlarBotaoTopo();
 
 editViagemModal?.addEventListener("click", (e) => {
   if (e.target === editViagemModal) {
@@ -189,10 +211,12 @@ firebase.auth().onAuthStateChanged(user => {
   if (user) {
     usuarioAtual = user;
     document.querySelector(".btn-google").style.display = "none";
+    if (logoutGoogleBtn) logoutGoogleBtn.style.display = "inline-flex";
     init();
   } else {
     usuarioAtual = null;
     document.querySelector(".btn-google").style.display = "flex";
+    if (logoutGoogleBtn) logoutGoogleBtn.style.display = "none";
     limparDadosEscalaLocal();
     render();
   }
@@ -1171,7 +1195,8 @@ async function salvarNovaViagem(event) {
     estacaoInicial: viagemEstacaoInicialInput.value,
     horaInicio: viagemHoraInicioInput.value,
     estacaoFinal: viagemEstacaoFinalInput.value,
-    horaFinal: viagemHoraFinalInput.value
+    horaFinal: viagemHoraFinalInput.value,
+    observacao: viagemObservacaoInput?.value
   });
 
   if (!payload) return;
@@ -1206,6 +1231,7 @@ function coletarDadosViagem(campos) {
   const horaInicio = normalizarHoraValida((campos.horaInicio || "").trim());
   const estacaoFinal = (campos.estacaoFinal || "").trim();
   const horaFinal = normalizarHoraValida((campos.horaFinal || "").trim());
+  const observacao = (campos.observacao || "").trim();
 
   if (!horaInicio || !horaFinal) {
     alert("Horários inválidos. Use o formato HH:MM (00:00 até 23:59).");
@@ -1217,7 +1243,7 @@ function coletarDadosViagem(campos) {
     return null;
   }
 
-  return { data, prefixo, tremId, estacaoInicial, horaInicio, estacaoFinal, horaFinal };
+  return { data, prefixo, tremId, estacaoInicial, horaInicio, estacaoFinal, horaFinal, observacao };
 }
 
 function aplicarMascaraHora(input) {
@@ -1253,7 +1279,12 @@ function renderTabelaViagens() {
 
   const registrosDia = viagensRegistros
     .filter((item) => item.data === diaSelecionado)
-    .sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
+    .sort((a, b) => {
+      const criadoA = new Date(a.criadoEm || 0).getTime();
+      const criadoB = new Date(b.criadoEm || 0).getTime();
+      if (criadoA !== criadoB) return criadoA - criadoB;
+      return (a.horaInicio || "").localeCompare(b.horaInicio || "");
+    });
 
   if (!registrosDia.length) {
     viagensTabelaContainer.innerHTML = `<div class="lista-vazia">Nenhuma viagem registrada em ${formatarData(diaSelecionado)}.</div>`;
@@ -1272,6 +1303,7 @@ function renderTabelaViagens() {
             <th>Hora de Início</th>
             <th>Estação Final</th>
             <th>Hora Final</th>
+            <th>Obs.</th>
             <th>Ações</th>
           </tr>
         </thead>
@@ -1285,6 +1317,11 @@ function renderTabelaViagens() {
               <td>${item.horaInicio || "-"}</td>
               <td>${item.estacaoFinal || "-"}</td>
               <td>${item.horaFinal || "-"}</td>
+              <td>
+                <button type="button" class="btn-observacao ${item.observacao ? "ativo" : ""}" data-action="observacao" data-id="${item.id}" aria-label="Ver observação">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M18.18 8.03933L18.6435 7.57589C19.4113 6.80804 20.6563 6.80804 21.4241 7.57589C22.192 8.34374 22.192 9.58868 21.4241 10.3565L20.9607 10.82M18.18 8.03933C18.18 8.03933 18.238 9.02414 19.1069 9.89309C19.9759 10.762 20.9607 10.82 20.9607 10.82M18.18 8.03933L13.9194 12.2999C13.6308 12.5885 13.4865 12.7328 13.3624 12.8919C13.2161 13.0796 13.0906 13.2827 12.9882 13.4975C12.9014 13.6797 12.8368 13.8732 12.7078 14.2604L12.2946 15.5L12.1609 15.901M20.9607 10.82L16.7001 15.0806C16.4115 15.3692 16.2672 15.5135 16.1081 15.6376C15.9204 15.7839 15.7173 15.9094 15.5025 16.0118C15.3203 16.0986 15.1268 16.1632 14.7396 16.2922L13.5 16.7054L13.099 16.8391M13.099 16.8391L12.6979 16.9728C12.5074 17.0363 12.2973 16.9867 12.1553 16.8447C12.0133 16.7027 11.9637 16.4926 12.0272 16.3021L12.1609 15.901M13.099 16.8391L12.1609 15.901" stroke="currentColor" stroke-width="1.5"/><path d="M8 13H10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 9H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 17H9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 14V10C3 6.22876 3 4.34315 4.17157 3.17157C5.34315 2 7.22876 2 11 2H13C16.7712 2 18.6569 2 19.8284 3.17157M21 14C21 17.7712 21 19.6569 19.8284 20.8284M4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284M19.8284 20.8284C20.7715 19.8853 20.9554 18.4796 20.9913 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </td>
               <td class="viagens-acoes-cell">
                 <button type="button" class="btn-editar-dia btn-acao-viagem" data-action="editar" data-id="${item.id}">Editar</button>
                 <button type="button" class="btn-editar-dia btn-acao-viagem excluir" data-action="excluir" data-id="${item.id}">Excluir</button>
@@ -1295,6 +1332,10 @@ function renderTabelaViagens() {
       </table>
     </div>
   `;
+
+  viagensTabelaContainer.querySelectorAll('[data-action="observacao"]').forEach((botao) => {
+    botao.addEventListener("click", () => abrirModalObservacao(botao.dataset.id));
+  });
 
   viagensTabelaContainer.querySelectorAll('[data-action="editar"]').forEach((botao) => {
     botao.addEventListener("click", () => abrirModalEdicaoViagem(botao.dataset.id));
@@ -1317,6 +1358,7 @@ function abrirModalEdicaoViagem(id) {
   editViagemHoraInicioInput.value = registro.horaInicio || "";
   editViagemEstacaoFinalInput.value = registro.estacaoFinal || "";
   editViagemHoraFinalInput.value = registro.horaFinal || "";
+  editViagemObservacaoInput.value = registro.observacao || "";
   editViagemModal.classList.add("aberto");
   editViagemModal.setAttribute("aria-hidden", "false");
 }
@@ -1337,7 +1379,8 @@ async function salvarEdicaoViagem() {
     estacaoInicial: editViagemEstacaoInicialInput.value,
     horaInicio: editViagemHoraInicioInput.value,
     estacaoFinal: editViagemEstacaoFinalInput.value,
-    horaFinal: editViagemHoraFinalInput.value
+    horaFinal: editViagemHoraFinalInput.value,
+    observacao: editViagemObservacaoInput?.value
   });
 
   if (!payload) return;
@@ -1384,6 +1427,26 @@ async function excluirViagem(id) {
     console.error("Erro ao excluir viagem:", erro);
     alert("Não foi possível excluir a viagem.");
   }
+}
+
+function abrirModalObservacao(id) {
+  const registro = viagensRegistros.find((item) => item.id === id);
+  if (!registro) return;
+
+  observacaoConteudo.innerText = registro.observacao || "Esta viagem não possui observação.";
+  viewObservacaoModal.classList.add("aberto");
+  viewObservacaoModal.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalObservacao() {
+  viewObservacaoModal.classList.remove("aberto");
+  viewObservacaoModal.setAttribute("aria-hidden", "true");
+}
+
+function controlarBotaoTopo() {
+  if (!scrollTopBtn) return;
+  const mostrar = window.scrollY > 260;
+  scrollTopBtn.classList.toggle("visivel", mostrar);
 }
 
 async function init() {
