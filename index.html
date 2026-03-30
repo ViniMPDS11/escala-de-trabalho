@@ -9,20 +9,36 @@
 </head>
 <body>
 
+<header class="app-header">
+  <div class="header-inner">
+    <img class="brand-logo" src="./trivia-trens-logo.png" alt="Trivia Trens" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+    <h1 class="brand-fallback">Trivia Trens</h1>
+    <div class="header-controls">
+      <div class="route-menu">
+        <button class="route-menu-toggle" id="routeMenuToggle" type="button" aria-expanded="false" aria-controls="routeMenuList">
+          <span id="routeMenuLabel">Escala</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="route-menu-list" id="routeMenuList" role="menu" aria-hidden="true">
+          <button class="route-option ativo" type="button" role="menuitem" data-route="escala">Escala</button>
+          <button class="route-option" type="button" role="menuitem" data-route="viagens">Viagens</button>
+        </div>
+      </div>
+      <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z" fill="currentColor"></path></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
 <div class="app">
 
   <section class="hero">
     <div class="hero-header">
       <h1>Escala de Trabalho</h1>
-      <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
     </div>
     <p class="hero-subtitle">Consulte sua escala.</p>
   </section>
-
-  <div class="route-tabs" role="tablist" aria-label="Seções da aplicação">
-    <button class="route-tab ativo" id="tabEscala" type="button" data-route="escala">Escala</button>
-    <button class="route-tab" id="tabViagens" type="button" data-route="viagens">Viagens</button>
-  </div>
 
   <section class="page-section ativo" id="pageEscala">
 
@@ -100,6 +116,9 @@
           <label>Hora Final
             <input type="text" id="viagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5" required>
           </label>
+          <label class="campo-observacao">Observação
+            <textarea id="viagemObservacao" maxlength="500" placeholder="Observações da viagem (opcional)"></textarea>
+          </label>
         </div>
         <button class="btn-salvar-config" id="salvarViagemBtn" type="submit">Registrar viagem</button>
       </form>
@@ -159,6 +178,11 @@
       </div>
     </div>
 
+    <label class="toggle-retroativa toggle-theme" for="lightModeToggle">
+      <input type="checkbox" id="lightModeToggle" role="switch" aria-label="Ativar modo claro">
+      <span>Ativar modo claro da página.</span>
+    </label>
+
     <label class="toggle-retroativa" for="applyRetroactive">
       <input type="checkbox" id="applyRetroactive">
       <span>Atualizar também os registros antigos já salvos.</span>
@@ -196,6 +220,7 @@
           <label>Hora de Início <input type="text" id="editViagemHoraInicio" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
           <label>Estação Final <input type="text" id="editViagemEstacaoFinal" maxlength="120"></label>
           <label>Hora Final <input type="text" id="editViagemHoraFinal" inputmode="numeric" placeholder="HH:MM" maxlength="5"></label>
+          <label>Observação <textarea id="editViagemObservacao" maxlength="500" placeholder="Observações da viagem (opcional)"></textarea></label>
         </div>
       </div>
     </div>
@@ -286,6 +311,22 @@
 
   window.db = firebase.firestore();
 </script>
+
+
+<div class="settings-modal" id="viewObservacaoModal" aria-hidden="true">
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="viewObservacaoTitle">
+    <div class="settings-topo">
+      <h2 id="viewObservacaoTitle">Observação da viagem</h2>
+      <button class="settings-close" id="closeViewObservacaoModal" type="button" aria-label="Fechar observação">✕</button>
+    </div>
+    <p class="settings-desc" id="observacaoConteudo">Sem observação cadastrada.</p>
+    <div class="settings-actions">
+      <button class="btn-salvar-config" id="okViewObservacaoModal" type="button">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<button class="btn-scroll-top" id="scrollTopBtn" type="button" aria-label="Voltar para o topo"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 14.5L12 9.5L17 14.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
 
 <script src="script.js"></script>
 </body>

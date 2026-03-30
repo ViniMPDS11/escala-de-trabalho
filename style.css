@@ -17,6 +17,11 @@
   --shadow: 0 24px 50px rgba(2, 6, 23, 0.4);
 }
 
+body.light-mode {
+  --text: #0f172a;
+  --muted: #475569;
+}
+
 body {
   font-family: Arial, sans-serif;
   background:
@@ -25,6 +30,10 @@ body {
   color: var(--text);
   padding: 10px;
   min-height: 100vh;
+}
+
+body.light-mode {
+  background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
 }
 
 button,
@@ -39,6 +48,104 @@ button {
   font: inherit;
 }
 
+
+.app-header {
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+  max-width: 520px;
+  margin: 0 auto 10px;
+}
+
+.header-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-menu {
+  position: relative;
+}
+
+.route-menu-toggle {
+  min-width: 112px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.route-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 150px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
+  display: none;
+  padding: 6px;
+}
+
+.route-menu-list.aberto {
+  display: grid;
+  gap: 4px;
+}
+
+.route-option {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.route-option.ativo {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(29, 78, 216, 0.5));
+  color: #dbeafe;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+  backdrop-filter: blur(8px);
+}
+
+.brand-logo {
+  width: min(100%, 260px);
+  height: 36px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brand-fallback {
+  display: none;
+  font-size: 20px;
+  margin: 0;
+  color: #f8fafc;
+}
+
+.header-inner .btn-config {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .app {
   max-width: 520px;
   width: 100%;
@@ -49,6 +156,31 @@ button {
   border: 1px solid rgba(148, 163, 184, 0.12);
   box-shadow: var(--shadow);
 }
+
+body.light-mode .header-inner,
+body.light-mode .app,
+body.light-mode .viagens-shell,
+body.light-mode .settings-dialog {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+body.light-mode .route-tab {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+body.light-mode .route-tab.ativo {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(29, 78, 216, 0.35));
+}
+
+body.light-mode .hero-subtitle,
+body.light-mode .viagens-topo p,
+body.light-mode .settings-desc {
+  color: #475569;
+}
+
 
 .hero {
   text-align: center;
@@ -771,7 +903,7 @@ h1 {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  z-index: 20;
+  z-index: 9999;
 }
 
 .settings-modal.aberto {
@@ -877,11 +1009,47 @@ h1 {
 .toggle-retroativa {
   margin-top: 12px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   color: #cbd5e1;
   font-size: 12px;
 }
+
+.toggle-theme {
+  margin-top: 0;
+}
+
+.toggle-theme input {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  position: relative;
+  background: rgba(51, 65, 85, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.toggle-theme input::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  clip-path: none;
+  transform: translateX(0);
+  background: #fff;
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  transition: transform 0.18s ease;
+}
+
+.toggle-theme input:checked::after {
+  transform: translateX(18px);
+}
+
+.toggle-theme span {
+  line-height: 1.35;
+}
+
 
 .btn-salvar-config {
   width: 100%;
@@ -962,6 +1130,10 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.campo-observacao {
+  grid-column: 1 / -1;
+}
+
 .viagem-grid label,
 .viagens-filtro label {
   display: flex;
@@ -972,7 +1144,9 @@ h1 {
 }
 
 .viagem-grid input,
-.viagens-filtro input {
+.viagens-filtro input,
+.viagem-grid textarea,
+.edit-dialog textarea {
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 10px;
   background: rgba(2, 6, 23, 0.6);
@@ -994,8 +1168,9 @@ h1 {
 
 .viagens-table {
   width: 100%;
-  border-collapse: collapse;
-  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 860px;
   background: rgba(15, 23, 42, 0.78);
 }
 
@@ -1003,9 +1178,19 @@ h1 {
 .viagens-table td {
   text-align: left;
   padding: 10px 9px;
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   font-size: 12px;
   color: #dbeafe;
+}
+
+.viagens-table td:last-child,
+.viagens-table th:last-child {
+  border-right: none;
+}
+
+.viagens-table tbody tr:nth-child(2n) {
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .viagens-table th {
@@ -1022,6 +1207,59 @@ h1 {
   gap: 6px;
 }
 
+
+.btn-observacao {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(51, 65, 85, 0.55);
+  color: #94a3b8;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.btn-observacao svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-observacao.ativo {
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-scroll-top {
+  position: fixed;
+  right: 16px;
+  bottom: 20px;
+  z-index: 60;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-scroll-top svg {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-scroll-top.visivel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
@@ -1033,6 +1271,29 @@ h1 {
 @media (max-width: 480px) {
   body {
     padding: 8px;
+  }
+
+  .app-header {
+    top: 6px;
+    max-width: 100%;
+  }
+
+  .header-inner {
+    padding: 8px 10px;
+  }
+
+  .brand-logo {
+    max-width: 190px;
+    height: 30px;
+  }
+
+  .brand-fallback {
+    font-size: 17px;
+  }
+
+  .route-menu-toggle {
+    min-width: 94px;
+    padding: 9px 10px;
   }
 
   .app {
@@ -1091,4 +1352,687 @@ h1 {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* Tema claro refinado */
+body.light-mode {
+  background: linear-gradient(180deg, #cfd8e6 0%, #e7edf6 100%);
+}
+
+body.light-mode .app,
+body.light-mode .header-inner,
+body.light-mode #lista,
+body.light-mode .calendar-shell,
+body.light-mode .viagens-shell,
+body.light-mode .settings-dialog,
+body.light-mode .escala-hoje,
+body.light-mode .card,
+body.light-mode .day,
+body.light-mode .empty-day {
+  background: linear-gradient(180deg, #f6f9ff, #eaf1fb);
+  border-color: rgba(100, 116, 139, 0.28);
+  color: #0f172a;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.light-mode .settings-modal {
+  background: rgba(30, 41, 59, 0.42);
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input,
+body.light-mode .upload::after {
+  background: #e6edf8;
+  border-color: rgba(100, 116, 139, 0.34);
+  color: #0f172a;
+}
+
+body.light-mode .route-option {
+  color: #334155;
+}
+
+body.light-mode .route-option.ativo,
+body.light-mode .route-tab.ativo {
+  color: #dbeafe;
+}
+
+body.light-mode .upload {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 14px 24px rgba(34, 197, 94, 0.2);
+}
+
+body.light-mode .btn-google {
+  color: #0f172a;
+  background: linear-gradient(180deg, #f8fafc, #e5edf8);
+  border-color: rgba(100, 116, 139, 0.32);
+}
+
+body.light-mode .btn-google small,
+body.light-mode .hero-subtitle,
+body.light-mode .viagens-topo p,
+body.light-mode .settings-desc,
+body.light-mode .lista-subtitulo,
+body.light-mode .card-linha strong,
+body.light-mode .toggle-retroativa,
+body.light-mode .time-inputs label,
+body.light-mode .viagem-grid label,
+body.light-mode .viagens-filtro label,
+body.light-mode .week-header div,
+body.light-mode #mesAtual {
+  color: #475569;
+}
+
+body.light-mode .day-number,
+body.light-mode .card-data,
+body.light-mode .lista-titulo,
+body.light-mode .settings-topo h2,
+body.light-mode .viagens-topo h2 {
+  color: #0f172a;
+}
+
+body.light-mode .day-info,
+body.light-mode .card-linha {
+  color: #1e293b;
+  background: #eef3fb;
+}
+
+body.light-mode .day.folga {
+  background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+}
+
+body.light-mode .day.hoje,
+body.light-mode .card.today,
+body.light-mode .escala-hoje {
+  background: linear-gradient(180deg, #dcfce7, #bbf7d0);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+body.light-mode .btn-hoje,
+body.light-mode .mes-controle button,
+body.light-mode .btn-salvar-config {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: rgba(100, 116, 139, 0.36);
+}
+
+body.light-mode .viagens-table {
+  background: #eef3fb;
+}
+
+body.light-mode .viagens-table th {
+  background: #dbe7f8;
+  color: #1d4ed8;
+}
+
+body.light-mode .viagens-table td {
+  color: #0f172a;
+  border-color: rgba(100, 116, 139, 0.24);
+}
+
+body.light-mode .viagens-table tbody tr:nth-child(2n) {
+  background: #e3ebf8;
+}
+
+body.light-mode .lista-vazia {
+  background: #e2e8f0;
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #475569;
+}
+
+body.light-mode .btn-observacao {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.35);
+}
+
+body.light-mode .btn-observacao.ativo {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+}
+
+body.light-mode .btn-scroll-top {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+}
+
+/* Ajuste fino de paleta no modo claro (menos contraste estourado) */
+body.light-mode .brand-fallback,
+body.light-mode .lista-titulo,
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .mes-header::after {
+  color: #1e293b;
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
+body.light-mode .route-option,
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #dbe4f1;
+  border-color: rgba(71, 85, 105, 0.28);
+  color: #1e293b;
+}
+
+body.light-mode .route-option.ativo {
+  background: #c7d5e9;
+  border-color: rgba(59, 130, 246, 0.38);
+  color: #1e3a5f;
+}
+
+body.light-mode .mes-controle button,
+body.light-mode .btn-hoje,
+body.light-mode .btn-salvar-config {
+  background: #3f5f87;
+  color: #f8fafc;
+}
+
+body.light-mode .mes-controle button:hover,
+body.light-mode .btn-hoje:hover,
+body.light-mode .btn-salvar-config:hover {
+  background: #365475;
+}
+
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .settings-row,
+body.light-mode .card-linha,
+body.light-mode .lista-vazia {
+  background: #e2e8f2;
+  border-color: rgba(71, 85, 105, 0.2);
+}
+
+body.light-mode .filtro-passados input,
+body.light-mode .toggle-retroativa input {
+  background: #d6dfec;
+  border-color: rgba(71, 85, 105, 0.35);
+}
+
+body.light-mode .filtro-passados input:checked,
+body.light-mode .toggle-retroativa input:checked {
+  background: #4c6a93;
+  border-color: rgba(51, 65, 85, 0.45);
+  box-shadow: 0 0 0 3px rgba(76, 106, 147, 0.18);
+}
+
+body.light-mode .card.today,
+body.light-mode .day.hoje,
+body.light-mode .escala-hoje {
+  background: linear-gradient(180deg, #d9e7f7, #c9ddef);
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+body.light-mode .card-badge.trabalho {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1e3a5f;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+body.light-mode .card-badge.folga {
+  background: rgba(100, 116, 139, 0.15);
+  color: #334155;
+}
+
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem {
+  background: #516b8e;
+  border-color: rgba(51, 65, 85, 0.25);
+  color: #f8fafc;
+}
+
+body.light-mode .btn-acao-viagem.excluir,
+body.light-mode .btn-logout-google {
+  background: #9b4a4a;
+  border-color: rgba(127, 29, 29, 0.22);
+  color: #fff;
+}
+
+body.light-mode .viagens-table th {
+  background: #d3dfef;
+  color: #334155;
+}
+
+body.light-mode .viagens-table tbody tr:nth-child(2n) {
+  background: #dde7f4;
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input {
+  background: #eef3fa;
+  color: #1e293b;
+  border-color: rgba(71, 85, 105, 0.28);
+}
+
+/* === TEMA CLARO 2.0 (paleta completa e moderna) === */
+body.light-mode {
+  background: radial-gradient(circle at top, #f7fbff 0%, #eaf1fb 38%, #dde8f5 100%) !important;
+  color: #1f2a3a !important;
+}
+
+body.light-mode .app-header,
+body.light-mode .app {
+  background: transparent !important;
+}
+
+body.light-mode .header-inner,
+body.light-mode .app,
+body.light-mode #lista,
+body.light-mode .calendar-shell,
+body.light-mode .viagens-shell,
+body.light-mode .settings-dialog,
+body.light-mode .card,
+body.light-mode .escala-hoje,
+body.light-mode .settings-row,
+body.light-mode .card-linha,
+body.light-mode .lista-vazia,
+body.light-mode .viagens-table-wrap,
+body.light-mode .escala-hoje-grid > div {
+  background: linear-gradient(180deg, #f8fbff, #edf3fb) !important;
+  border-color: #c7d6e8 !important;
+  color: #1f2a3a !important;
+  box-shadow: 0 8px 24px rgba(30, 52, 84, 0.08) !important;
+}
+
+body.light-mode .settings-modal {
+  background: rgba(24, 38, 58, 0.35) !important;
+}
+
+body.light-mode .hero-subtitle,
+body.light-mode .lista-subtitulo,
+body.light-mode .settings-desc,
+body.light-mode .time-inputs label,
+body.light-mode .viagem-grid label,
+body.light-mode .viagens-filtro label,
+body.light-mode .toggle-retroativa,
+body.light-mode .week-header div,
+body.light-mode #mesAtual,
+body.light-mode .card-linha strong,
+body.light-mode .upload small,
+body.light-mode .btn-google small {
+  color: #5b6d84 !important;
+}
+
+body.light-mode h1,
+body.light-mode h2,
+body.light-mode .lista-titulo,
+body.light-mode .day-number,
+body.light-mode .card-data,
+body.light-mode .settings-topo h2,
+body.light-mode .viagens-topo h2,
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .brand-fallback {
+  color: #1d2a3c !important;
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
+body.light-mode .route-option,
+body.light-mode .btn-config,
+body.light-mode .settings-close,
+body.light-mode .mes-controle button,
+body.light-mode .btn-hoje,
+body.light-mode .btn-salvar-config,
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem,
+body.light-mode .btn-scroll-top {
+  border-color: #9eb4cf !important;
+}
+
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list,
+body.light-mode .route-option,
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #e3edf9 !important;
+  color: #1f2a3a !important;
+}
+
+body.light-mode .route-option.ativo {
+  background: #cdddf1 !important;
+  color: #1d3557 !important;
+  border-color: #89a8ca !important;
+}
+
+body.light-mode .mes-controle button,
+body.light-mode .btn-hoje,
+body.light-mode .btn-salvar-config,
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem,
+body.light-mode .btn-scroll-top {
+  background: linear-gradient(135deg, #44648e, #38577f) !important;
+  color: #f8fbff !important;
+}
+
+body.light-mode .btn-acao-viagem.excluir,
+body.light-mode .btn-logout-google {
+  background: linear-gradient(135deg, #a35353, #8d4444) !important;
+  color: #fff !important;
+  border-color: #8d4444 !important;
+}
+
+body.light-mode .upload {
+  background: linear-gradient(135deg, #2e8a65, #277953) !important;
+  color: #fff !important;
+  border-color: #277953 !important;
+}
+
+body.light-mode .upload::after {
+  background: rgba(255, 255, 255, 0.24) !important;
+  color: #f8fbff !important;
+}
+
+body.light-mode .btn-google {
+  background: linear-gradient(180deg, #f9fcff, #e9f0f9) !important;
+  border-color: #c5d4e8 !important;
+  color: #1f2a3a !important;
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input {
+  background: #f4f8fd !important;
+  color: #1f2a3a !important;
+  border-color: #b8cbe1 !important;
+}
+
+body.light-mode .filtro-passados input,
+body.light-mode .toggle-retroativa input,
+body.light-mode .toggle-theme input {
+  background: #d7e3f1 !important;
+  border-color: #90a8c4 !important;
+}
+
+body.light-mode .filtro-passados input:checked,
+body.light-mode .toggle-retroativa input:checked,
+body.light-mode .toggle-theme input:checked {
+  background: #4a688f !important;
+  border-color: #3f5b7f !important;
+  box-shadow: 0 0 0 3px rgba(74, 104, 143, 0.2) !important;
+}
+
+body.light-mode .day,
+body.light-mode .empty-day {
+  background: #f1f6fc !important;
+  border-color: #c8d7e9 !important;
+}
+
+body.light-mode .day.folga {
+  background: #e9eef6 !important;
+}
+
+body.light-mode .day.hoje,
+body.light-mode .card.today,
+body.light-mode .escala-hoje {
+  background: linear-gradient(180deg, #d8e7f8, #c8dbf0) !important;
+  border-color: #9cb5d2 !important;
+}
+
+body.light-mode .card-badge.trabalho {
+  background: #d5e4f7 !important;
+  color: #25496f !important;
+  border: 1px solid #a9c2de !important;
+}
+
+body.light-mode .card-badge.folga {
+  background: #e3e9f1 !important;
+  color: #42566f !important;
+}
+
+body.light-mode .ano-header,
+body.light-mode .mes-header {
+  background: #e2ebf7 !important;
+  border-color: #bfd0e5 !important;
+}
+
+body.light-mode .viagens-table {
+  background: #eff5fc !important;
+}
+
+body.light-mode .viagens-table th {
+  background: #d8e5f5 !important;
+  color: #2d4665 !important;
+  border-color: #b9cce3 !important;
+}
+
+body.light-mode .viagens-table td {
+  color: #1f2a3a !important;
+  border-color: #c5d4e7 !important;
+}
+
+body.light-mode .viagens-table tbody tr:nth-child(2n) {
+  background: #e4edf8 !important;
+}
+
+body.light-mode .btn-observacao {
+  background: #dfe8f3 !important;
+  color: #4c627d !important;
+  border-color: #adc1d8 !important;
+}
+
+body.light-mode .btn-observacao.ativo {
+  background: linear-gradient(135deg, #2e8a65, #277953) !important;
+  color: #fff !important;
+  border-color: #277953 !important;
+}
+
+/* Ajustes finais de contraste/spacing no modo claro */
+.btn-config svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.toggle-theme {
+  margin-top: 10px;
+}
+
+.viagens-filtro {
+  margin-top: 16px;
+}
+
+.viagens-table-wrap {
+  margin-top: 16px;
+}
+
+body.light-mode .btn-config {
+  box-shadow: 0 2px 8px rgba(30, 52, 84, 0.12) !important;
+}
+
+body.light-mode .btn-scroll-top {
+  box-shadow: 0 4px 12px rgba(30, 52, 84, 0.16) !important;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close,
+body.light-mode .route-menu-toggle,
+body.light-mode .route-option,
+body.light-mode .route-menu-list,
+body.light-mode .mes-header,
+body.light-mode .ano-header,
+body.light-mode .settings-row,
+body.light-mode .card,
+body.light-mode .card-linha,
+body.light-mode .viagens-table,
+body.light-mode .viagens-table th,
+body.light-mode .viagens-table td,
+body.light-mode .lista-vazia,
+body.light-mode .viagens-shell,
+body.light-mode #lista,
+body.light-mode .calendar-shell,
+body.light-mode .settings-dialog,
+body.light-mode .app,
+body.light-mode .header-inner {
+  color: #1f2a3a !important;
+}
+
+body.light-mode .btn-hoje,
+body.light-mode .mes-controle button,
+body.light-mode .btn-salvar-config,
+body.light-mode .btn-editar-dia,
+body.light-mode .btn-acao-viagem,
+body.light-mode .btn-logout-google,
+body.light-mode .btn-scroll-top,
+body.light-mode .upload {
+  color: #f8fbff !important;
+}
+
+body.light-mode .brand-fallback,
+body.light-mode .ano-header,
+body.light-mode .mes-header,
+body.light-mode .route-menu-toggle,
+body.light-mode .route-option,
+body.light-mode .settings-row strong,
+body.light-mode .viagens-table th {
+  color: #23364f !important;
+}
+
+body.light-mode .day-info,
+body.light-mode .hero-subtitle,
+body.light-mode .settings-desc,
+body.light-mode .lista-subtitulo,
+body.light-mode .time-inputs label,
+body.light-mode .viagem-grid label,
+body.light-mode .viagens-filtro label,
+body.light-mode .toggle-retroativa {
+  color: #566b85 !important;
+}
+
+body.light-mode .btn-config,
+body.light-mode .settings-close {
+  background: #d9e5f3 !important;
+}
+
+body.light-mode .btn-config svg {
+  color: #2f4766 !important;
+}
+
+/* Correções pontuais finais (modo claro) */
+.btn-config {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+body.light-mode .btn-config {
+  box-shadow: 0 2px 6px rgba(30, 52, 84, 0.1) !important;
+}
+
+body.light-mode .btn-hoje {
+  box-shadow: 0 3px 8px rgba(30, 52, 84, 0.12) !important;
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input,
+body.light-mode #viagemObservacao,
+body.light-mode #editViagemObservacao {
+  background: #e7eef8 !important;
+  color: #1f2a3a !important;
+  border-color: #a9bfd8 !important;
+}
+
+body.light-mode .upload {
+  box-shadow: 0 4px 10px rgba(46, 138, 101, 0.14) !important;
+}
+
+body.light-mode .upload-text,
+body.light-mode .upload small,
+body.light-mode .btn-copy,
+body.light-mode .upload::after {
+  color: #f8fbff !important;
+}
+
+body.light-mode .escala-hoje-titulo,
+body.light-mode .escala-hoje-linha,
+body.light-mode .escala-hoje-grid {
+  color: #23364f !important;
+}
+
+body.light-mode .escala-hoje .card-badge.trabalho,
+body.light-mode .escala-hoje .card-badge {
+  background: #d5e4f7 !important;
+  color: #25496f !important;
+  border: 1px solid #a9c2de !important;
+}
+
+body.light-mode .filtro-passados,
+body.light-mode .filtro-passados span,
+body.light-mode .toggle-retroativa span {
+  color: #3f5673 !important;
+}
+
+body.light-mode .ano-header {
+  background: #e2ebf7 !important;
+  border-color: #bfd0e5 !important;
+}
+
+body.light-mode .lista-badge {
+  background: #cfdff1 !important;
+  color: #2a4768 !important;
+  border-color: #abc2db !important;
+}
+
+/* Ajustes finais solicitados */
+body.light-mode .btn-google {
+  background: linear-gradient(180deg, #f2f7fd, #e2ebf7) !important;
+  border-color: #b8cbe1 !important;
+  box-shadow: 0 6px 14px rgba(35, 54, 79, 0.08) !important;
+}
+
+body.light-mode .btn-google .btn-copy > span {
+  color: #1e3553 !important;
+}
+
+body.light-mode .btn-google small {
+  color: #415c7b !important;
+}
+
+body.light-mode .work-day {
+  background: #dceee1 !important;
+  border: 1px solid #bad8c3 !important;
+  box-shadow: inset 0 -1px 0 rgba(39, 121, 83, 0.12) !important;
+}
+
+body.light-mode .off-day {
+  background: #e4ebf6 !important;
+  border: 1px solid #c6d4e7 !important;
+  box-shadow: inset 0 -1px 0 rgba(71, 85, 105, 0.08) !important;
+}
+
+body.light-mode .none-day {
+  background: #eef3fa !important;
+  border: 1px solid #d5e0ee !important;
+  box-shadow: none !important;
+}
+
+body.light-mode .day-num,
+body.light-mode .day-info {
+  color: #2b3f58 !important;
+}
+
+/* Correções de espaçamento/consistência solicitadas */
+body.light-mode .day-info {
+  background: transparent !important;
+}
+
+#viagensTabelaContainer .lista-vazia {
+  margin-top: 16px;
 }
