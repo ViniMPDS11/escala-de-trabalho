@@ -56,8 +56,9 @@ const editSairCasaInput = document.getElementById("editSairCasa");
 const editArrumarInput = document.getElementById("editArrumar");
 const pageEscala = document.getElementById("pageEscala");
 const pageViagens = document.getElementById("pageViagens");
-const tabEscala = document.getElementById("tabEscala");
-const tabViagens = document.getElementById("tabViagens");
+const routeMenuToggle = document.getElementById("routeMenuToggle");
+const routeMenuList = document.getElementById("routeMenuList");
+const routeMenuLabel = document.getElementById("routeMenuLabel");
 const viagemForm = document.getElementById("viagemForm");
 const viagemDataInput = document.getElementById("viagemData");
 const viagemPrefixoInput = document.getElementById("viagemPrefixo");
@@ -172,9 +173,32 @@ editModal?.addEventListener("click", (e) => {
 });
 
 saveEditModalBtn?.addEventListener("click", salvarEdicaoRegistro);
-tabEscala?.addEventListener("click", () => navegarPara("escala"));
-tabViagens?.addEventListener("click", () => navegarPara("viagens"));
 window.addEventListener("hashchange", aplicarRotaPelaHash);
+
+routeMenuToggle?.addEventListener("click", () => {
+  const aberto = routeMenuList?.classList.toggle("aberto");
+  routeMenuToggle.setAttribute("aria-expanded", aberto ? "true" : "false");
+  routeMenuList?.setAttribute("aria-hidden", aberto ? "false" : "true");
+});
+
+document.addEventListener("click", (event) => {
+  if (!routeMenuList || !routeMenuToggle) return;
+  const container = routeMenuToggle.closest(".route-menu");
+  if (!container?.contains(event.target)) {
+    routeMenuList.classList.remove("aberto");
+    routeMenuToggle.setAttribute("aria-expanded", "false");
+    routeMenuList.setAttribute("aria-hidden", "true");
+  }
+});
+
+document.querySelectorAll(".route-option").forEach((botao) => {
+  botao.addEventListener("click", () => {
+    navegarPara(botao.dataset.route);
+    routeMenuList?.classList.remove("aberto");
+    routeMenuToggle?.setAttribute("aria-expanded", "false");
+    routeMenuList?.setAttribute("aria-hidden", "true");
+  });
+});
 
 viagemForm?.addEventListener("submit", salvarNovaViagem);
 filtroDiaViagensInput?.addEventListener("change", renderTabelaViagens);
@@ -184,7 +208,9 @@ saveEditViagemModalBtn?.addEventListener("click", salvarEdicaoViagem);
 closeViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
 okViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
 lightModeToggle?.addEventListener("change", () => {
-  aplicarTema(lightModeToggle.checked);
+  const ativo = lightModeToggle.checked;
+  aplicarTema(ativo);
+  salvarTemaLocal(ativo);
 });
 
 viewObservacaoModal?.addEventListener("click", (e) => {
@@ -1158,8 +1184,15 @@ function aplicarRotaPelaHash() {
 
   pageEscala?.classList.toggle("ativo", !mostrarViagens);
   pageViagens?.classList.toggle("ativo", mostrarViagens);
-  tabEscala?.classList.toggle("ativo", !mostrarViagens);
-  tabViagens?.classList.toggle("ativo", mostrarViagens);
+
+  document.querySelectorAll(".route-option").forEach((item) => {
+    const ativo = item.dataset.route === rota;
+    item.classList.toggle("ativo", ativo);
+  });
+
+  if (routeMenuLabel) {
+    routeMenuLabel.innerText = mostrarViagens ? "Viagens" : "Escala";
+  }
 }
 
 function carregarViagensLocal() {

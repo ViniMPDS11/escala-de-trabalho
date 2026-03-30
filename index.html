@@ -13,11 +13,19 @@
   <div class="header-inner">
     <img class="brand-logo" src="./trivia-trens-logo.png" alt="Trivia Trens" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
     <h1 class="brand-fallback">Trivia Trens</h1>
-    <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
-  </div>
-  <div class="route-tabs header-tabs" role="tablist" aria-label="Seções da aplicação">
-    <button class="route-tab ativo" id="tabEscala" type="button" data-route="escala">Escala</button>
-    <button class="route-tab" id="tabViagens" type="button" data-route="viagens">Viagens</button>
+    <div class="header-controls">
+      <div class="route-menu">
+        <button class="route-menu-toggle" id="routeMenuToggle" type="button" aria-expanded="false" aria-controls="routeMenuList">
+          <span id="routeMenuLabel">Escala</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="route-menu-list" id="routeMenuList" role="menu" aria-hidden="true">
+          <button class="route-option ativo" type="button" role="menuitem" data-route="escala">Escala</button>
+          <button class="route-option" type="button" role="menuitem" data-route="viagens">Viagens</button>
+        </div>
+      </div>
+      <button class="btn-config" id="openSettings" type="button" aria-label="Abrir configurações">⚙️</button>
+    </div>
   </div>
 </header>
 

@@ -52,14 +52,68 @@ button {
 .app-header {
   position: sticky;
   top: 8px;
-  z-index: 30;
+  z-index: 5;
   max-width: 520px;
   margin: 0 auto 10px;
 }
 
-.header-tabs {
-  margin-top: 8px;
-  margin-bottom: 0;
+.header-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-menu {
+  position: relative;
+}
+
+.route-menu-toggle {
+  min-width: 112px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.route-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 150px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
+  display: none;
+  padding: 6px;
+}
+
+.route-menu-list.aberto {
+  display: grid;
+  gap: 4px;
+}
+
+.route-option {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.route-option.ativo {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(29, 78, 216, 0.5));
+  color: #dbeafe;
 }
 
 .header-inner {
@@ -849,7 +903,7 @@ h1 {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  z-index: 200;
+  z-index: 9999;
 }
 
 .settings-modal.aberto {
@@ -1237,6 +1291,11 @@ h1 {
     font-size: 17px;
   }
 
+  .route-menu-toggle {
+    min-width: 94px;
+    padding: 9px 10px;
+  }
+
   .app {
     max-width: 100%;
     padding: 16px 6px 24px;
@@ -1297,4 +1356,38 @@ h1 {
 
 body.light-mode .btn-scroll-top {
   box-shadow: 0 10px 22px rgba(29, 78, 216, 0.3);
+}
+
+body.light-mode .card,
+body.light-mode #lista,
+body.light-mode .calendar-shell,
+body.light-mode .escala-hoje {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+body.light-mode .time-inputs input,
+body.light-mode .time-inputs select,
+body.light-mode .viagem-grid input,
+body.light-mode .viagem-grid textarea,
+body.light-mode .viagens-filtro input,
+body.light-mode .route-menu-toggle,
+body.light-mode .route-menu-list {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+body.light-mode .route-option {
+  color: #334155;
+}
+
+body.light-mode .lista-subtitulo,
+body.light-mode .card-linha strong,
+body.light-mode .time-inputs label,
+body.light-mode .viagem-grid label,
+body.light-mode .viagens-filtro label,
+body.light-mode .toggle-retroativa {
+  color: #475569;
 }
