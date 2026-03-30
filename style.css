@@ -1989,3 +1989,41 @@ body.light-mode .lista-badge {
   color: #2a4768 !important;
   border-color: #abc2db !important;
 }
+
+/* Ajustes finais solicitados */
+body.light-mode .btn-google {
+  background: linear-gradient(180deg, #f2f7fd, #e2ebf7) !important;
+  border-color: #b8cbe1 !important;
+  box-shadow: 0 6px 14px rgba(35, 54, 79, 0.08) !important;
+}
+
+body.light-mode .btn-google .btn-copy > span {
+  color: #1e3553 !important;
+}
+
+body.light-mode .btn-google small {
+  color: #415c7b !important;
+}
+
+body.light-mode .work-day {
+  background: #dceee1 !important;
+  border: 1px solid #bad8c3 !important;
+  box-shadow: inset 0 -1px 0 rgba(39, 121, 83, 0.12) !important;
+}
+
+body.light-mode .off-day {
+  background: #e4ebf6 !important;
+  border: 1px solid #c6d4e7 !important;
+  box-shadow: inset 0 -1px 0 rgba(71, 85, 105, 0.08) !important;
+}
+
+body.light-mode .none-day {
+  background: #eef3fa !important;
+  border: 1px solid #d5e0ee !important;
+  box-shadow: none !important;
+}
+
+body.light-mode .day-num,
+body.light-mode .day-info {
+  color: #2b3f58 !important;
+}
