@@ -30,6 +30,7 @@ const closeSettingsBtn = document.getElementById("closeSettings");
 const saveSettingsBtn = document.getElementById("saveSettings");
 const logoutGoogleBtn = document.getElementById("logoutGoogle");
 const applyRetroactiveInput = document.getElementById("applyRetroactive");
+const lightModeToggle = document.getElementById("lightModeToggle");
 
 const egoHoursInput = document.getElementById("egoHours");
 const egoMinutesInput = document.getElementById("egoMinutes");
@@ -40,6 +41,7 @@ const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
 const filtroDiasKey = "escalaFiltroOcultarPassados";
+const temaClaroKey = "escalaTemaClaro";
 const editModal = document.getElementById("editModal");
 const closeEditModalBtn = document.getElementById("closeEditModal");
 const cancelEditModalBtn = document.getElementById("cancelEditModal");
@@ -126,6 +128,10 @@ saveSettingsBtn.addEventListener("click", async () => {
   await salvarConfigUsuario(novaConfig);
   configAtual = novaConfig;
 
+  const temaClaroAtivo = Boolean(lightModeToggle?.checked);
+  salvarTemaLocal(temaClaroAtivo);
+  aplicarTema(temaClaroAtivo);
+
   const aplicarRetroativo = applyRetroactiveInput.checked;
 
   saveSettingsBtn.disabled = true;
@@ -177,6 +183,9 @@ cancelEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
 saveEditViagemModalBtn?.addEventListener("click", salvarEdicaoViagem);
 closeViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
 okViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
+lightModeToggle?.addEventListener("change", () => {
+  aplicarTema(lightModeToggle.checked);
+});
 
 viewObservacaoModal?.addEventListener("click", (e) => {
   if (e.target === viewObservacaoModal) {
@@ -190,6 +199,7 @@ scrollTopBtn?.addEventListener("click", () => {
 
 window.addEventListener("scroll", controlarBotaoTopo);
 controlarBotaoTopo();
+aplicarTema(carregarTemaLocal());
 
 editViagemModal?.addEventListener("click", (e) => {
   if (e.target === editViagemModal) {
@@ -908,6 +918,18 @@ function fecharConfiguracoes() {
   applyRetroactiveInput.checked = false;
 }
 
+function carregarTemaLocal() {
+  return localStorage.getItem(temaClaroKey) === "1";
+}
+
+function salvarTemaLocal(ativo) {
+  localStorage.setItem(temaClaroKey, ativo ? "1" : "0");
+}
+
+function aplicarTema(modoClaro) {
+  document.body.classList.toggle("light-mode", Boolean(modoClaro));
+}
+
 function carregarConfigLocal() {
   const raw = localStorage.getItem("escalaConfig");
 
@@ -997,6 +1019,10 @@ function preencherFormularioConfiguracao() {
 
   arrumarHoursInput.value = arrumar.h;
   arrumarMinutesInput.value = arrumar.m;
+
+  if (lightModeToggle) {
+    lightModeToggle.checked = carregarTemaLocal();
+  }
 }
 
 function lerConfigDoFormulario() {

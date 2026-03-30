@@ -17,6 +17,11 @@
   --shadow: 0 24px 50px rgba(2, 6, 23, 0.4);
 }
 
+body.light-mode {
+  --text: #0f172a;
+  --muted: #475569;
+}
+
 body {
   font-family: Arial, sans-serif;
   background:
@@ -25,6 +30,10 @@ body {
   color: var(--text);
   padding: 10px;
   min-height: 100vh;
+}
+
+body.light-mode {
+  background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
 }
 
 button,
@@ -46,6 +55,11 @@ button {
   z-index: 30;
   max-width: 520px;
   margin: 0 auto 10px;
+}
+
+.header-tabs {
+  margin-top: 8px;
+  margin-bottom: 0;
 }
 
 .header-inner {
@@ -88,6 +102,31 @@ button {
   border: 1px solid rgba(148, 163, 184, 0.12);
   box-shadow: var(--shadow);
 }
+
+body.light-mode .header-inner,
+body.light-mode .app,
+body.light-mode .viagens-shell,
+body.light-mode .settings-dialog {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+body.light-mode .route-tab {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+body.light-mode .route-tab.ativo {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(29, 78, 216, 0.35));
+}
+
+body.light-mode .hero-subtitle,
+body.light-mode .viagens-topo p,
+body.light-mode .settings-desc {
+  color: #475569;
+}
+
 
 .hero {
   text-align: center;
@@ -810,7 +849,7 @@ h1 {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  z-index: 20;
+  z-index: 200;
 }
 
 .settings-modal.aberto {
@@ -916,11 +955,47 @@ h1 {
 .toggle-retroativa {
   margin-top: 12px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   color: #cbd5e1;
   font-size: 12px;
 }
+
+.toggle-theme {
+  margin-top: 0;
+}
+
+.toggle-theme input {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  position: relative;
+  background: rgba(51, 65, 85, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.toggle-theme input::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  clip-path: none;
+  transform: translateX(0);
+  background: #fff;
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  transition: transform 0.18s ease;
+}
+
+.toggle-theme input:checked::after {
+  transform: translateX(18px);
+}
+
+.toggle-theme span {
+  line-height: 1.35;
+}
+
 
 .btn-salvar-config {
   width: 100%;
@@ -1104,20 +1179,25 @@ h1 {
 
 .btn-scroll-top {
   position: fixed;
-  right: 14px;
-  bottom: 18px;
-  z-index: 40;
-  width: 42px;
-  height: 42px;
-  border: none;
+  right: 16px;
+  bottom: 20px;
+  z-index: 60;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.92);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.4);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.35);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(8px);
+  transform: translateY(10px);
   transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-scroll-top svg {
+  width: 24px;
+  height: 24px;
 }
 
 .btn-scroll-top.visivel {
@@ -1213,4 +1293,8 @@ h1 {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+body.light-mode .btn-scroll-top {
+  box-shadow: 0 10px 22px rgba(29, 78, 216, 0.3);
 }
