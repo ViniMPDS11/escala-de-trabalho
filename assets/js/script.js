@@ -1096,7 +1096,7 @@ function fecharModalEdicao() {
 }
 
 function preencherFormularioEdicao(registro) {
-  editDataInput.value = formatarData(registro.data);
+  editDataInput.value = registro.data || "";
   editStatusInput.value = registro.status || "TRABALHO";
   editEntradaInput.value = registro.entrada || "-";
   editSaidaInput.value = registro.saida || "-";
@@ -1118,13 +1118,26 @@ async function salvarEdicaoRegistro() {
   }
 
   const status = editStatusInput.value === "FOLGA" ? "FOLGA" : "TRABALHO";
+  const novaData = (editDataInput.value || "").trim();
+
+  if (!obterPartesData(novaData)) {
+    alert("Informe uma data válida para o dia da escala.");
+    return;
+  }
+
+  const conflitoData = dados.some((item, idx) => idx !== indice && item.data === novaData);
+  if (conflitoData) {
+    alert("Já existe um registro para esta data.");
+    return;
+  }
+
   const valorOuTraco = (valor) => {
     const limpo = (valor || "").trim();
     return limpo ? limpo : "-";
   };
 
   const registroAtualizado = {
-    data: registroEditandoData,
+    data: novaData,
     status,
     entrada: status === "FOLGA" ? "-" : valorOuTraco(editEntradaInput.value),
     saida: status === "FOLGA" ? "-" : valorOuTraco(editSaidaInput.value),
@@ -1140,7 +1153,11 @@ async function salvarEdicaoRegistro() {
   try {
     dados[indice] = registroAtualizado;
     localStorage.setItem("escala", JSON.stringify(dados));
+    if (registroEditandoData !== novaData && usuarioAtual) {
+      await db.collection("escala").doc(registroEditandoData).delete();
+    }
     await salvar(registroAtualizado);
+    await carregarDados();
     fecharModalEdicao();
     render();
   } catch (erro) {
