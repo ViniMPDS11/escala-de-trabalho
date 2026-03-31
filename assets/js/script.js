@@ -1096,7 +1096,8 @@ function fecharModalEdicao() {
 }
 
 function preencherFormularioEdicao(registro) {
-  editDataInput.value = registro.data || "";
+  const partesData = obterPartesData(registro.data);
+  editDataInput.value = partesData ? formatKey(criarDataLocal(partesData.ano, partesData.mes, partesData.dia)) : "";
   editStatusInput.value = registro.status || "TRABALHO";
   editEntradaInput.value = registro.entrada || "-";
   editSaidaInput.value = registro.saida || "-";
@@ -1118,12 +1119,12 @@ async function salvarEdicaoRegistro() {
   }
 
   const status = editStatusInput.value === "FOLGA" ? "FOLGA" : "TRABALHO";
-  const novaData = (editDataInput.value || "").trim();
-
-  if (!obterPartesData(novaData)) {
+  const partesNovaData = obterPartesData((editDataInput.value || "").trim());
+  if (!partesNovaData) {
     alert("Informe uma data válida para o dia da escala.");
     return;
   }
+  const novaData = formatKey(criarDataLocal(partesNovaData.ano, partesNovaData.mes, partesNovaData.dia));
 
   const conflitoData = dados.some((item, idx) => idx !== indice && item.data === novaData);
   if (conflitoData) {
@@ -1153,16 +1154,16 @@ async function salvarEdicaoRegistro() {
   try {
     dados[indice] = registroAtualizado;
     localStorage.setItem("escala", JSON.stringify(dados));
+    fecharModalEdicao();
+    render();
+
     if (registroEditandoData !== novaData && usuarioAtual) {
       await db.collection("escala").doc(registroEditandoData).delete();
     }
     await salvar(registroAtualizado);
-    await carregarDados();
-    fecharModalEdicao();
-    render();
   } catch (erro) {
     console.error("Erro ao salvar edição do dia:", erro);
-    alert("Não foi possível salvar agora. Tente novamente.");
+    alert("A escala foi atualizada localmente, mas não foi possível sincronizar com a nuvem agora.");
   } finally {
     saveEditModalBtn.disabled = false;
     saveEditModalBtn.innerText = "Salvar ajuste";
