@@ -1110,9 +1110,10 @@ function preencherFormularioEdicao(registro) {
 
 async function salvarEdicaoRegistro() {
   if (!registroEditandoData) return;
+  const dataOriginal = registroEditandoData;
 
   const dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  const indice = dados.findIndex((item) => item.data === registroEditandoData);
+  const indice = dados.findIndex((item) => item.data === dataOriginal);
 
   if (indice === -1) {
     alert("Não foi possível localizar o registro para salvar.");
@@ -1159,8 +1160,8 @@ async function salvarEdicaoRegistro() {
     render();
 
     if (usuarioAtual) {
-      if (registroEditandoData !== novaData) {
-        await db.collection("escala").doc(registroEditandoData).delete();
+      if (dataOriginal !== novaData) {
+        await db.collection("escala").doc(dataOriginal).delete();
       }
       await salvar(registroAtualizado);
     }
