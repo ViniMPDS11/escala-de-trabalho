@@ -497,6 +497,7 @@ async function recalcularRegistrosAntigos() {
 }
 
 async function salvar(dado) {
+  if (!usuarioAtual) return;
   await db.collection("escala").doc(dado.data).set(dado);
 }
 
@@ -1157,13 +1158,17 @@ async function salvarEdicaoRegistro() {
     fecharModalEdicao();
     render();
 
-    if (registroEditandoData !== novaData && usuarioAtual) {
-      await db.collection("escala").doc(registroEditandoData).delete();
+    if (usuarioAtual) {
+      if (registroEditandoData !== novaData) {
+        await db.collection("escala").doc(registroEditandoData).delete();
+      }
+      await salvar(registroAtualizado);
     }
-    await salvar(registroAtualizado);
   } catch (erro) {
     console.error("Erro ao salvar edição do dia:", erro);
-    alert("A escala foi atualizada localmente, mas não foi possível sincronizar com a nuvem agora.");
+    if (usuarioAtual) {
+      alert("A escala foi atualizada localmente, mas não foi possível sincronizar com a nuvem agora.");
+    }
   } finally {
     saveEditModalBtn.disabled = false;
     saveEditModalBtn.innerText = "Salvar ajuste";
