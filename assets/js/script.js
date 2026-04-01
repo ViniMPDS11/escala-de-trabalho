@@ -104,23 +104,27 @@ pdfInput.addEventListener("change", async (e) => {
 
   uploadHint.innerText = `${files.length} arquivo${files.length > 1 ? "s" : ""} selecionado${files.length > 1 ? "s" : ""}`;
 
-  if (!configAtual.nomeUsuario) {
-    alert("Configure o nome do usuário antes de importar PDFs.");
-    return;
-  }
-
   pendenciasDataPdf = [];
 
   for (let file of files) {
-    const texto = await extrairTextoPDF(file);
-    const dataCabecalho = obterDataEscalaDoTexto(texto);
-    const dataNomeArquivo = extrairDataDoNomeArquivo(file.name);
+    try {
+      const texto = await extrairTextoPDF(file);
+      const dataCabecalho = obterDataEscalaDoTexto(texto);
+      const dataNomeArquivo = extrairDataDoNomeArquivo(file.name);
 
-    pendenciasDataPdf.push({
-      nomeArquivo: file.name,
-      texto,
-      dataSugerida: dataCabecalho || dataNomeArquivo || ""
-    });
+      pendenciasDataPdf.push({
+        nomeArquivo: file.name,
+        texto,
+        dataSugerida: dataCabecalho || dataNomeArquivo || ""
+      });
+    } catch (erro) {
+      console.error("Erro ao ler PDF:", file.name, erro);
+      pendenciasDataPdf.push({
+        nomeArquivo: file.name,
+        texto: "",
+        dataSugerida: extrairDataDoNomeArquivo(file.name)
+      });
+    }
   }
 
   abrirModalDataFallback();
@@ -473,9 +477,7 @@ function processarTexto(texto, opcoes = {}) {
 function obterDataEscalaDoTexto(texto, dataForcada = "") {
   if (dataForcada) return dataForcada;
 
-  const matchCabecalho = texto.match(/CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L12\s+(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/i);
-  const dataCabecalho = matchCabecalho?.[1];
-
+  const dataCabecalho = extrairDataCabecalhoPdf(texto);
   if (!dataCabecalho) return "";
 
   const [dia, mes, ano] = dataCabecalho.split("/").map(Number);
@@ -486,6 +488,21 @@ function obterDataEscalaDoTexto(texto, dataForcada = "") {
   if (dateObj.getFullYear() !== ano || dateObj.getMonth() + 1 !== mes || dateObj.getDate() !== dia) return "";
 
   return formatKey(dateObj);
+}
+
+function extrairDataCabecalhoPdf(texto = "") {
+  const candidatos = [
+    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/i,
+    /(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/,
+    /\b(\d{2}\/\d{2}\/\d{4})\b/
+  ];
+
+  for (const regex of candidatos) {
+    const match = texto.match(regex);
+    if (match?.[1]) return match[1];
+  }
+
+  return "";
 }
 
 function extrairDataDoNomeArquivo(nomeArquivo) {
@@ -541,6 +558,11 @@ function fecharModalDataFallback() {
 
 async function confirmarDatasFallback() {
   if (!dataFallbackTbody) return;
+
+  if (!configAtual.nomeUsuario) {
+    alert("Configure o nome do usuário antes de confirmar a importação.");
+    return;
+  }
 
   const inputs = [...dataFallbackTbody.querySelectorAll("input[type='date']")];
   const datasSelecionadas = inputs.map((input) => input.value);
