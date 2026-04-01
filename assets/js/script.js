@@ -109,13 +109,12 @@ pdfInput.addEventListener("change", async (e) => {
   for (let file of files) {
     try {
       const texto = await extrairTextoPDF(file);
-      const dataCabecalho = obterDataEscalaDoTexto(texto);
       const dataNomeArquivo = extrairDataDoNomeArquivo(file.name);
 
       pendenciasDataPdf.push({
         nomeArquivo: file.name,
         texto,
-        dataSugerida: dataCabecalho || dataNomeArquivo || ""
+        dataSugerida: dataNomeArquivo || ""
       });
     } catch (erro) {
       console.error("Erro ao ler PDF:", file.name, erro);
@@ -475,34 +474,7 @@ function processarTexto(texto, opcoes = {}) {
 }
 
 function obterDataEscalaDoTexto(texto, dataForcada = "") {
-  if (dataForcada) return dataForcada;
-
-  const dataCabecalho = extrairDataCabecalhoPdf(texto);
-  if (!dataCabecalho) return "";
-
-  const [dia, mes, ano] = dataCabecalho.split("/").map(Number);
-  if (!dia || !mes || !ano) return "";
-
-  const dateObj = criarDataLocal(ano, mes, dia);
-  if (Number.isNaN(dateObj.getTime())) return "";
-  if (dateObj.getFullYear() !== ano || dateObj.getMonth() + 1 !== mes || dateObj.getDate() !== dia) return "";
-
-  return formatKey(dateObj);
-}
-
-function extrairDataCabecalhoPdf(texto = "") {
-  const candidatos = [
-    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})\s*$/i,
-    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})/i,
-    /(\d{2}\/\d{2}\/\d{4})/
-  ];
-
-  for (const regex of candidatos) {
-    const match = texto.match(regex);
-    if (match?.[1]) return match[1];
-  }
-
-  return "";
+  return dataForcada || "";
 }
 
 function extrairDataDoNomeArquivo(nomeArquivo) {
