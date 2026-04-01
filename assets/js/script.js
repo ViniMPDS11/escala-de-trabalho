@@ -113,25 +113,17 @@ pdfInput.addEventListener("change", async (e) => {
 
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
-    const processado = await processarTexto(texto);
+    const dataCabecalho = obterDataEscalaDoTexto(texto);
+    const dataNomeArquivo = extrairDataDoNomeArquivo(file.name);
 
-    if (!processado) {
-      pendenciasDataPdf.push({
-        nomeArquivo: file.name,
-        texto,
-        dataSugerida: extrairDataDoNomeArquivo(file.name)
-      });
-    }
+    pendenciasDataPdf.push({
+      nomeArquivo: file.name,
+      texto,
+      dataSugerida: dataCabecalho || dataNomeArquivo || ""
+    });
   }
 
-  if (pendenciasDataPdf.length) {
-    abrirModalDataFallback();
-    return;
-  }
-
-  await carregarDados();
-  render();
-  pdfInput.value = "";
+  abrirModalDataFallback();
 });
 
 openSettingsBtn.addEventListener("click", abrirConfiguracoes);
@@ -481,13 +473,18 @@ function processarTexto(texto, opcoes = {}) {
 function obterDataEscalaDoTexto(texto, dataForcada = "") {
   if (dataForcada) return dataForcada;
 
-  const ano = new Date().getFullYear();
-  const dataMatch = texto.match(/\d{1,2}\/\d{1,2}/);
+  const matchCabecalho = texto.match(/CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L12\s+(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/i);
+  const dataCabecalho = matchCabecalho?.[1];
 
-  if (!dataMatch) return "";
+  if (!dataCabecalho) return "";
 
-  const [dia, mes] = dataMatch[0].split("/").map(Number);
+  const [dia, mes, ano] = dataCabecalho.split("/").map(Number);
+  if (!dia || !mes || !ano) return "";
+
   const dateObj = criarDataLocal(ano, mes, dia);
+  if (Number.isNaN(dateObj.getTime())) return "";
+  if (dateObj.getFullYear() !== ano || dateObj.getMonth() + 1 !== mes || dateObj.getDate() !== dia) return "";
+
   return formatKey(dateObj);
 }
 
@@ -511,6 +508,11 @@ function extrairDataDoNomeArquivo(nomeArquivo) {
 
 function abrirModalDataFallback() {
   if (!dataFallbackModal || !dataFallbackTbody) return;
+
+  if (saveDataFallbackModalBtn) {
+    saveDataFallbackModalBtn.disabled = false;
+    saveDataFallbackModalBtn.innerText = "Confirmar e importar";
+  }
 
   dataFallbackTbody.innerHTML = pendenciasDataPdf.map((item, index) => {
     const valorInput = item.dataSugerida ? `value="${item.dataSugerida}"` : "";
@@ -548,8 +550,10 @@ async function confirmarDatasFallback() {
     return;
   }
 
-  saveDataFallbackModalBtn.disabled = true;
-  saveDataFallbackModalBtn.innerText = "Importando...";
+  if (saveDataFallbackModalBtn) {
+    saveDataFallbackModalBtn.disabled = true;
+    saveDataFallbackModalBtn.innerText = "Importando...";
+  }
 
   for (let i = 0; i < pendenciasDataPdf.length; i++) {
     const item = pendenciasDataPdf[i];
@@ -559,8 +563,10 @@ async function confirmarDatasFallback() {
   await carregarDados();
   render();
 
-  saveDataFallbackModalBtn.disabled = false;
-  saveDataFallbackModalBtn.innerText = "Confirmar e importar";
+  if (saveDataFallbackModalBtn) {
+    saveDataFallbackModalBtn.disabled = false;
+    saveDataFallbackModalBtn.innerText = "Confirmar e importar";
+  }
   fecharModalDataFallback();
 }
 
