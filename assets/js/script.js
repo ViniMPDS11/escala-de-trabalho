@@ -497,6 +497,7 @@ async function recalcularRegistrosAntigos() {
 }
 
 async function salvar(dado) {
+  if (!usuarioAtual) return;
   await db.collection("escala").doc(dado.data).set(dado);
 }
 
@@ -1096,7 +1097,8 @@ function fecharModalEdicao() {
 }
 
 function preencherFormularioEdicao(registro) {
-  editDataInput.value = formatarData(registro.data);
+  const partesData = obterPartesData(registro.data);
+  editDataInput.value = partesData ? formatKey(criarDataLocal(partesData.ano, partesData.mes, partesData.dia)) : "";
   editStatusInput.value = registro.status || "TRABALHO";
   editEntradaInput.value = registro.entrada || "-";
   editSaidaInput.value = registro.saida || "-";
@@ -1108,9 +1110,10 @@ function preencherFormularioEdicao(registro) {
 
 async function salvarEdicaoRegistro() {
   if (!registroEditandoData) return;
+  const dataOriginal = registroEditandoData;
 
   const dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  const indice = dados.findIndex((item) => item.data === registroEditandoData);
+  const indice = dados.findIndex((item) => item.data === dataOriginal);
 
   if (indice === -1) {
     alert("Não foi possível localizar o registro para salvar.");
@@ -1118,13 +1121,26 @@ async function salvarEdicaoRegistro() {
   }
 
   const status = editStatusInput.value === "FOLGA" ? "FOLGA" : "TRABALHO";
+  const partesNovaData = obterPartesData((editDataInput.value || "").trim());
+  if (!partesNovaData) {
+    alert("Informe uma data válida para o dia da escala.");
+    return;
+  }
+  const novaData = formatKey(criarDataLocal(partesNovaData.ano, partesNovaData.mes, partesNovaData.dia));
+
+  const conflitoData = dados.some((item, idx) => idx !== indice && item.data === novaData);
+  if (conflitoData) {
+    alert("Já existe um registro para esta data.");
+    return;
+  }
+
   const valorOuTraco = (valor) => {
     const limpo = (valor || "").trim();
     return limpo ? limpo : "-";
   };
 
   const registroAtualizado = {
-    data: registroEditandoData,
+    data: novaData,
     status,
     entrada: status === "FOLGA" ? "-" : valorOuTraco(editEntradaInput.value),
     saida: status === "FOLGA" ? "-" : valorOuTraco(editSaidaInput.value),
@@ -1140,12 +1156,20 @@ async function salvarEdicaoRegistro() {
   try {
     dados[indice] = registroAtualizado;
     localStorage.setItem("escala", JSON.stringify(dados));
-    await salvar(registroAtualizado);
     fecharModalEdicao();
     render();
+
+    if (usuarioAtual) {
+      if (dataOriginal !== novaData) {
+        await db.collection("escala").doc(dataOriginal).delete();
+      }
+      await salvar(registroAtualizado);
+    }
   } catch (erro) {
     console.error("Erro ao salvar edição do dia:", erro);
-    alert("Não foi possível salvar agora. Tente novamente.");
+    if (usuarioAtual) {
+      alert("A escala foi atualizada localmente, mas não foi possível sincronizar com a nuvem agora.");
+    }
   } finally {
     saveEditModalBtn.disabled = false;
     saveEditModalBtn.innerText = "Salvar ajuste";
