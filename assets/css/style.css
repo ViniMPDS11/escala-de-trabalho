@@ -2036,3 +2036,27 @@ body.light-mode .day-info {
 #viagensTabelaContainer .lista-vazia {
   margin-top: 16px;
 }
+
+.data-fallback-wrap {
+  margin-top: 12px;
+}
+
+.data-fallback-table {
+  min-width: 100%;
+}
+
+.data-fallback-table input[type="date"] {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.6);
+  color: #e2e8f0;
+  padding: 8px;
+  font: inherit;
+}
+
+body.light-mode .data-fallback-table input[type="date"] {
+  background: #fff;
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.45);
+}

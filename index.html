@@ -326,6 +326,33 @@
   </div>
 </div>
 
+<div class="settings-modal" id="dataFallbackModal" aria-hidden="true">
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="dataFallbackTitle">
+    <div class="settings-topo">
+      <h2 id="dataFallbackTitle">Data não encontrada no PDF</h2>
+      <button class="settings-close" id="closeDataFallbackModal" type="button" aria-label="Fechar confirmação de data">✕</button>
+    </div>
+    <p class="settings-desc">Não foi possível identificar a data no cabeçalho de alguns arquivos. Defina a data de cada arquivo antes de importar.</p>
+
+    <div class="viagens-table-wrap data-fallback-wrap">
+      <table class="viagens-table data-fallback-table">
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Data da escala</th>
+          </tr>
+        </thead>
+        <tbody id="dataFallbackTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="settings-actions">
+      <button class="btn-salvar-config" id="saveDataFallbackModal" type="button">Confirmar e importar</button>
+      <button class="btn-logout-google" id="cancelDataFallbackModal" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <button class="btn-scroll-top" id="scrollTopBtn" type="button" aria-label="Voltar para o topo"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 14.5L12 9.5L17 14.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
 
 <script src="assets/js/script.js"></script>

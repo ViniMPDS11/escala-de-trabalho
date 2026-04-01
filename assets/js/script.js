@@ -20,6 +20,7 @@ let cardExpandidoData = null;
 let registroEditandoData = null;
 let viagemEditandoId = null;
 let viagensRegistros = carregarViagensLocal();
+let pendenciasDataPdf = [];
 
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
@@ -87,6 +88,11 @@ const closeViewObservacaoModalBtn = document.getElementById("closeViewObservacao
 const okViewObservacaoModalBtn = document.getElementById("okViewObservacaoModal");
 const observacaoConteudo = document.getElementById("observacaoConteudo");
 const scrollTopBtn = document.getElementById("scrollTopBtn");
+const dataFallbackModal = document.getElementById("dataFallbackModal");
+const closeDataFallbackModalBtn = document.getElementById("closeDataFallbackModal");
+const cancelDataFallbackModalBtn = document.getElementById("cancelDataFallbackModal");
+const saveDataFallbackModalBtn = document.getElementById("saveDataFallbackModal");
+const dataFallbackTbody = document.getElementById("dataFallbackTbody");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -103,13 +109,29 @@ pdfInput.addEventListener("change", async (e) => {
     return;
   }
 
+  pendenciasDataPdf = [];
+
   for (let file of files) {
     const texto = await extrairTextoPDF(file);
-    await processarTexto(texto);
+    const processado = await processarTexto(texto);
+
+    if (!processado) {
+      pendenciasDataPdf.push({
+        nomeArquivo: file.name,
+        texto,
+        dataSugerida: extrairDataDoNomeArquivo(file.name)
+      });
+    }
+  }
+
+  if (pendenciasDataPdf.length) {
+    abrirModalDataFallback();
+    return;
   }
 
   await carregarDados();
   render();
+  pdfInput.value = "";
 });
 
 openSettingsBtn.addEventListener("click", abrirConfiguracoes);
@@ -207,6 +229,9 @@ cancelEditViagemModalBtn?.addEventListener("click", fecharModalEdicaoViagem);
 saveEditViagemModalBtn?.addEventListener("click", salvarEdicaoViagem);
 closeViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
 okViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
+closeDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
+cancelDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
+saveDataFallbackModalBtn?.addEventListener("click", confirmarDatasFallback);
 lightModeToggle?.addEventListener("change", () => {
   const ativo = lightModeToggle.checked;
   aplicarTema(ativo);
@@ -218,6 +243,12 @@ viewObservacaoModal?.addEventListener("click", (e) => {
     fecharModalObservacao();
   }
 });
+dataFallbackModal?.addEventListener("click", (e) => {
+  if (e.target === dataFallbackModal) {
+    fecharModalDataFallback();
+  }
+});
+
 
 scrollTopBtn?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -392,24 +423,18 @@ function partesParaNumero(data) {
   return partes.ano * 10000 + partes.mes * 100 + partes.dia;
 }
 
-function processarTexto(texto) {
-  const ano = new Date().getFullYear();
-
-  const dataMatch = texto.match(/\d{1,2}\/\d{1,2}/);
-  if (!dataMatch) return;
-
-  const [dia, mes] = dataMatch[0].split("/");
-  const dateObj = criarDataLocal(ano, Number(mes), Number(dia));
-  const data = formatKey(dateObj);
+function processarTexto(texto, opcoes = {}) {
+  const data = obterDataEscalaDoTexto(texto, opcoes.dataForcada);
+  if (!data) return false;
 
   const nomeUsuarioConfigurado = (configAtual.nomeUsuario || "").trim().toUpperCase();
-  if (!nomeUsuarioConfigurado) return;
+  if (!nomeUsuarioConfigurado) return false;
   const textoNormalizado = texto.toUpperCase();
   const indexNome = textoNormalizado.indexOf(nomeUsuarioConfigurado);
 
   if (indexNome === -1) {
     salvar({ data, status: "FOLGA" });
-    return;
+    return true;
   }
 
   const resto = texto.slice(indexNome);
@@ -449,6 +474,94 @@ function processarTexto(texto) {
     arrumar,
     status: "TRABALHO"
   });
+
+  return true;
+}
+
+function obterDataEscalaDoTexto(texto, dataForcada = "") {
+  if (dataForcada) return dataForcada;
+
+  const ano = new Date().getFullYear();
+  const dataMatch = texto.match(/\d{1,2}\/\d{1,2}/);
+
+  if (!dataMatch) return "";
+
+  const [dia, mes] = dataMatch[0].split("/").map(Number);
+  const dateObj = criarDataLocal(ano, mes, dia);
+  return formatKey(dateObj);
+}
+
+function extrairDataDoNomeArquivo(nomeArquivo) {
+  const ano = new Date().getFullYear();
+  const match = nomeArquivo.match(/(\d{1,2})\.(\d{1,2})/);
+
+  if (!match) return "";
+
+  const dia = Number(match[1]);
+  const mes = Number(match[2]);
+
+  if (!dia || !mes || mes > 12 || dia > 31) return "";
+
+  const data = criarDataLocal(ano, mes, dia);
+  if (Number.isNaN(data.getTime())) return "";
+  if (data.getMonth() + 1 !== mes || data.getDate() !== dia) return "";
+
+  return formatKey(data);
+}
+
+function abrirModalDataFallback() {
+  if (!dataFallbackModal || !dataFallbackTbody) return;
+
+  dataFallbackTbody.innerHTML = pendenciasDataPdf.map((item, index) => {
+    const valorInput = item.dataSugerida ? `value="${item.dataSugerida}"` : "";
+    return `
+      <tr>
+        <td>${item.nomeArquivo}</td>
+        <td>
+          <input type="date" data-index="${index}" ${valorInput}>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  dataFallbackModal.classList.add("aberto");
+  dataFallbackModal.setAttribute("aria-hidden", "false");
+}
+
+function fecharModalDataFallback() {
+  if (!dataFallbackModal) return;
+
+  dataFallbackModal.classList.remove("aberto");
+  dataFallbackModal.setAttribute("aria-hidden", "true");
+  pendenciasDataPdf = [];
+  if (pdfInput) pdfInput.value = "";
+}
+
+async function confirmarDatasFallback() {
+  if (!dataFallbackTbody) return;
+
+  const inputs = [...dataFallbackTbody.querySelectorAll("input[type='date']")];
+  const datasSelecionadas = inputs.map((input) => input.value);
+
+  if (datasSelecionadas.some((data) => !data)) {
+    alert("Preencha uma data para todos os arquivos antes de continuar.");
+    return;
+  }
+
+  saveDataFallbackModalBtn.disabled = true;
+  saveDataFallbackModalBtn.innerText = "Importando...";
+
+  for (let i = 0; i < pendenciasDataPdf.length; i++) {
+    const item = pendenciasDataPdf[i];
+    await processarTexto(item.texto, { dataForcada: datasSelecionadas[i] });
+  }
+
+  await carregarDados();
+  render();
+
+  saveDataFallbackModalBtn.disabled = false;
+  saveDataFallbackModalBtn.innerText = "Confirmar e importar";
+  fecharModalDataFallback();
 }
 
 function calcularSaidaCasa(entrada, local) {
