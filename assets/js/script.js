@@ -492,9 +492,9 @@ function obterDataEscalaDoTexto(texto, dataForcada = "") {
 
 function extrairDataCabecalhoPdf(texto = "") {
   const candidatos = [
-    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/i,
-    /(\d{2}\/\d{2}\/\d{4})\s+N[°ºO]/,
-    /\b(\d{2}\/\d{2}\/\d{4})\b/
+    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})\s*$/i,
+    /CONTROLE\s+DE\s+APRESENTA[ÇC][AÃ]O\s+DI[ÁA]RIO\s+L\d+\s+(\d{2}\/\d{2}\/\d{4})/i,
+    /(\d{2}\/\d{2}\/\d{4})/
   ];
 
   for (const regex of candidatos) {
