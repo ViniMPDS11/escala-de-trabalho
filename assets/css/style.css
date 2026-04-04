@@ -252,6 +252,78 @@ h1 {
   display: block;
 }
 
+.export-shell {
+  margin: 14px 0;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.export-topo h3 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.export-topo p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.export-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.export-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.export-grid input {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.52);
+  color: var(--text);
+  padding: 9px 10px;
+}
+
+.btn-export-pdf {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(14, 116, 144, 0.42);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #f8fafc;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.btn-export-pdf svg {
+  width: 18px;
+  height: 18px;
+}
+
+body.light-mode .export-shell {
+  background: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+body.light-mode .export-grid input {
+  background: #ffffff;
+  color: #0f172a;
+}
+
 .quick-actions {
   display: grid;
   gap: 12px;
