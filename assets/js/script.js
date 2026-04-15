@@ -93,6 +93,9 @@ const closeDataFallbackModalBtn = document.getElementById("closeDataFallbackModa
 const cancelDataFallbackModalBtn = document.getElementById("cancelDataFallbackModal");
 const saveDataFallbackModalBtn = document.getElementById("saveDataFallbackModal");
 const dataFallbackTbody = document.getElementById("dataFallbackTbody");
+const exportStartDateInput = document.getElementById("exportStartDate");
+const exportEndDateInput = document.getElementById("exportEndDate");
+const exportPdfBtn = document.getElementById("exportPdfBtn");
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -227,6 +230,7 @@ okViewObservacaoModalBtn?.addEventListener("click", fecharModalObservacao);
 closeDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 cancelDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 saveDataFallbackModalBtn?.addEventListener("click", confirmarDatasFallback);
+exportPdfBtn?.addEventListener("click", exportarEscalaPdf);
 lightModeToggle?.addEventListener("change", () => {
   const ativo = lightModeToggle.checked;
   aplicarTema(ativo);
@@ -630,6 +634,130 @@ function render() {
   renderCalendar();
   renderLista();
   renderTabelaViagens();
+  preencherPeriodoExportacaoPadrao();
+}
+
+function preencherPeriodoExportacaoPadrao() {
+  if (!exportStartDateInput || !exportEndDateInput) return;
+
+  const dados = JSON.parse(localStorage.getItem("escala") || "[]")
+    .map((item) => item?.data)
+    .filter(Boolean)
+    .sort();
+
+  if (!dados.length) {
+    const hoje = formatKey(new Date());
+    exportStartDateInput.value = hoje;
+    exportEndDateInput.value = hoje;
+    return;
+  }
+
+  const primeiraData = dados[0];
+  const ultimaData = dados[dados.length - 1];
+
+  if (!exportStartDateInput.value) exportStartDateInput.value = primeiraData;
+  if (!exportEndDateInput.value) exportEndDateInput.value = ultimaData;
+}
+
+function coletarRegistrosPeriodo(dataInicio, dataFim) {
+  const inicioNumero = partesParaNumero(dataInicio);
+  const fimNumero = partesParaNumero(dataFim);
+  if (inicioNumero === null || fimNumero === null) return [];
+
+  return (JSON.parse(localStorage.getItem("escala") || "[]") || [])
+    .filter((item) => {
+      const numero = partesParaNumero(item.data);
+      return numero !== null && numero >= inicioNumero && numero <= fimNumero;
+    })
+    .sort((a, b) => (partesParaNumero(a.data) || 0) - (partesParaNumero(b.data) || 0));
+}
+
+function exportarEscalaPdf() {
+  if (!window.jspdf?.jsPDF) {
+    alert("Não foi possível iniciar o exportador de PDF agora. Tente novamente.");
+    return;
+  }
+
+  const dataInicio = (exportStartDateInput?.value || "").trim();
+  const dataFim = (exportEndDateInput?.value || "").trim();
+
+  if (!dataInicio || !dataFim) {
+    alert("Selecione a data inicial e final para exportar.");
+    return;
+  }
+
+  if (partesParaNumero(dataInicio) > partesParaNumero(dataFim)) {
+    alert("A data inicial não pode ser maior que a data final.");
+    return;
+  }
+
+  const registros = coletarRegistrosPeriodo(dataInicio, dataFim);
+  if (!registros.length) {
+    alert("Nenhuma escala encontrada nesse período.");
+    return;
+  }
+
+  exportPdfBtn.disabled = true;
+  exportPdfBtn.querySelector("span").innerText = "Gerando PDF...";
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const nomeCabecalho = (configAtual.nomeUsuario || "").trim() || "Usuário não configurado";
+    const periodo = `${formatarData(dataInicio)} até ${formatarData(dataFim)}`;
+    const modoClaro = document.body.classList.contains("light-mode");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(nomeCabecalho, 40, 46);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Escala exportada: ${periodo}`, 40, 66);
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 40, 82);
+
+    const linhas = registros.map((item) => {
+      const folga = item.status === "FOLGA";
+      return [
+        formatarData(item.data),
+        folga ? "-" : (item.entrada || "-"),
+        folga ? "-" : (item.saida || "-"),
+        folga ? "FOLGA" : (item.local || "-")
+      ];
+    });
+
+    doc.autoTable({
+      startY: 100,
+      head: [["Dia", "Entrada", "Saída", "Local"]],
+      body: linhas,
+      styles: {
+        font: "helvetica",
+        fontSize: 10,
+        cellPadding: 7,
+        lineColor: [203, 213, 225],
+        lineWidth: 0.5
+      },
+      headStyles: {
+        fillColor: modoClaro ? [14, 116, 144] : [15, 23, 42],
+        textColor: [255, 255, 255],
+        fontStyle: "bold"
+      },
+      alternateRowStyles: {
+        fillColor: modoClaro ? [241, 245, 249] : [248, 250, 252]
+      },
+      bodyStyles: {
+        textColor: [15, 23, 42]
+      },
+      tableLineColor: [148, 163, 184],
+      tableLineWidth: 0.5
+    });
+
+    const nomeArquivo = `escala-${dataInicio}-a-${dataFim}.pdf`;
+    doc.save(nomeArquivo);
+  } finally {
+    exportPdfBtn.disabled = false;
+    exportPdfBtn.querySelector("span").innerText = "Exportar período em PDF";
+  }
 }
 
 function renderCalendar() {
