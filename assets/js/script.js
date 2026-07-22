@@ -23,6 +23,20 @@ let viagemEditandoId = null;
 let viagensRegistros = carregarViagensLocal();
 let pendenciasDataPdf = [];
 
+function atualizarAlturaViewportVisivel() {
+  const alturaViewport = window.visualViewport?.height || window.innerHeight;
+
+  if (!alturaViewport) return;
+
+  document.documentElement.style.setProperty("--app-visible-height", `${alturaViewport}px`);
+}
+
+atualizarAlturaViewportVisivel();
+window.addEventListener("resize", atualizarAlturaViewportVisivel);
+window.addEventListener("orientationchange", atualizarAlturaViewportVisivel);
+window.visualViewport?.addEventListener("resize", atualizarAlturaViewportVisivel);
+window.visualViewport?.addEventListener("scroll", atualizarAlturaViewportVisivel);
+
 const brandLogo = document.getElementById("brandLogo");
 const loginGoogleBtn = document.getElementById("loginGoogle");
 const prevMonthBtn = document.getElementById("prevMonthBtn");
