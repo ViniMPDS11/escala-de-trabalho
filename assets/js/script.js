@@ -14,14 +14,19 @@ const defaultConfig = {
   arrumarOffsetMin: 60
 };
 
-let configAtual = carregarConfigLocal();
 let usuarioAtual = null;
+let configAtual = carregarConfigLocal();
 let cardExpandidoData = null;
 let registroEditandoData = null;
 let viagemEditandoId = null;
 let viagensRegistros = carregarViagensLocal();
 let pendenciasDataPdf = [];
 
+const brandLogo = document.getElementById("brandLogo");
+const loginGoogleBtn = document.getElementById("loginGoogle");
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+const todayBtn = document.getElementById("todayBtn");
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
 
@@ -96,6 +101,24 @@ const exportStartDateInput = document.getElementById("exportStartDate");
 const exportEndDateInput = document.getElementById("exportEndDate");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
 const addDayBtn = document.getElementById("addDayBtn");
+
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+brandLogo?.addEventListener("error", () => {
+  brandLogo.style.display = "none";
+  if (brandLogo.nextElementSibling) {
+    brandLogo.nextElementSibling.style.display = "block";
+  }
+});
+
+loginGoogleBtn?.addEventListener("click", login);
+prevMonthBtn?.addEventListener("click", () => mudarMes(-1));
+nextMonthBtn?.addEventListener("click", () => mudarMes(1));
+todayBtn?.addEventListener("click", irParaHoje);
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];

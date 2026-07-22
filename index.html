@@ -11,7 +11,7 @@
 
 <header class="app-header">
   <div class="header-inner">
-    <img class="brand-logo" src="./trivia-trens-logo.png" alt="Trivia Trens" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+    <img class="brand-logo" id="brandLogo" src="./trivia-trens-logo.png" alt="Trivia Trens">
     <h1 class="brand-fallback">Trivia Trens</h1>
     <div class="header-controls">
       <div class="route-menu">
@@ -43,7 +43,7 @@
   <section class="page-section ativo" id="pageEscala">
 
   <div class="quick-actions">
-    <button class="btn-google dark" onclick="login()">
+    <button class="btn-google dark" id="loginGoogle" type="button">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       <span class="btn-copy">
         <span>Entrar com Google</span>
@@ -65,9 +65,9 @@
 
   <section class="calendar-shell">
     <div class="mes-controle">
-      <button onclick="mudarMes(-1)">‹</button>
+      <button id="prevMonthBtn" type="button">‹</button>
       <span id="mesAtual"></span>
-      <button onclick="mudarMes(1)">›</button>
+      <button id="nextMonthBtn" type="button">›</button>
     </div>
 
     <div class="week-header">
@@ -104,7 +104,7 @@
     </button>
   </section>
 
-  <button class="btn-hoje" onclick="irParaHoje()">Ir para hoje</button>
+  <button class="btn-hoje" id="todayBtn" type="button">Ir para hoje</button>
 
   <div id="lista"></div>
   </section>
@@ -313,28 +313,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuxMzfGyzPoq4yO6M8_BCVvnEyT-8XIe4",
-    authDomain: "escala-vinicius-m.firebaseapp.com",
-    projectId: "escala-vinicius-m",
-    storageBucket: "escala-vinicius-m.appspot.com",
-    messagingSenderId: "69262067102",
-    appId: "1:69262067102:web:fc0392b1abaae69009c28f"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-
-  window.db = firebase.firestore();
-</script>
+<script src="assets/js/firebase-init.js"></script>
 
 
 <div class="settings-modal" id="viewObservacaoModal" aria-hidden="true">
