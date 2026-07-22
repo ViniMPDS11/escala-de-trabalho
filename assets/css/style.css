@@ -313,6 +313,13 @@ h1 {
   margin-top: 0;
 }
 
+.btn-export-pdf .btn-add-day-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: #ffffff;
+}
+
 .btn-export-pdf svg {
   width: 18px;
   height: 18px;
@@ -976,6 +983,8 @@ body.light-mode .export-grid input {
   align-items: center;
   justify-content: center;
   padding: 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -993,6 +1002,9 @@ body.light-mode .export-grid input {
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: linear-gradient(180deg, rgba(15, 23, 42, 1), rgba(30, 41, 59, 0.98));
   padding: 16px;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 20px 45px rgba(2, 6, 23, 0.5);
 }
 
