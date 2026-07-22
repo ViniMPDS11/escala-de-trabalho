@@ -1,5 +1,3 @@
-const inicio = new Date(2026, 2, 11);
-
 let dataAtual = new Date();
 
 const mesesNome = [
@@ -9,6 +7,9 @@ const mesesNome = [
 
 const defaultConfig = {
   nomeUsuario: "",
+  tipoEscala: "6x2",
+  inicioEscala: "2026-03-11",
+  faseEscala: "5x2",
   egoOffsetMin: 100,
   basOffsetMin: 70,
   arrumarOffsetMin: 60
@@ -45,6 +46,10 @@ const basMinutesInput = document.getElementById("basMinutes");
 const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
+const tipoEscalaInput = document.getElementById("tipoEscala");
+const inicioEscalaInput = document.getElementById("inicioEscala");
+const faseEscalaInput = document.getElementById("faseEscala");
+const faseEscalaLabel = document.getElementById("faseEscalaLabel");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
 const filtroDiasKey = "escalaFiltroOcultarPassados";
 const temaClaroKey = "escalaTemaClaro";
@@ -119,6 +124,7 @@ loginGoogleBtn?.addEventListener("click", login);
 prevMonthBtn?.addEventListener("click", () => mudarMes(-1));
 nextMonthBtn?.addEventListener("click", () => mudarMes(1));
 todayBtn?.addEventListener("click", irParaHoje);
+tipoEscalaInput?.addEventListener("change", atualizarCamposTipoEscala);
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -297,11 +303,24 @@ editViagemModal?.addEventListener("click", (e) => {
 
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider);
+  provider.setCustomParameters({ hd: "triviatrens.com.br" });
+  firebase.auth().signInWithPopup(provider).catch((erro) => {
+    console.error("Erro ao fazer login:", erro);
+    alert("Não foi possível entrar com o Google agora. Tente novamente.");
+  });
 }
 
-firebase.auth().onAuthStateChanged(user => {
+function emailCorporativoValido(user) {
+  return (user?.email || "").toLowerCase().endsWith("@triviatrens.com.br");
+}
+
+firebase.auth().onAuthStateChanged(async user => {
   if (user) {
+    if (!emailCorporativoValido(user)) {
+      alert("Use seu email corporativo da Trivia Trens (@triviatrens.com.br) para entrar.");
+      await firebase.auth().signOut();
+      return;
+    }
     usuarioAtual = user;
     document.querySelector(".btn-google").style.display = "none";
     if (logoutGoogleBtn) logoutGoogleBtn.style.display = "inline-flex";
@@ -761,9 +780,23 @@ async function salvar(dado) {
 }
 
 function getStatus(data) {
-  if (data < inicio) return "NONE";
-  const diff = Math.floor((data - inicio) / 86400000);
-  return diff % 8 < 6 ? "WORK" : "OFF";
+  const inicioEscala = parseDataEscala(configAtual.inicioEscala);
+  if (!inicioEscala || data < inicioEscala) return "NONE";
+
+  const diff = Math.floor((inicioDoDia(data) - inicioDoDia(inicioEscala)) / 86400000);
+  const tipoEscala = configAtual.tipoEscala === "5x2_6x1" ? "5x2_6x1" : "6x2";
+
+  if (tipoEscala === "6x2") {
+    return diff % 8 < 6 ? "WORK" : "OFF";
+  }
+
+  const faseInicial = configAtual.faseEscala === "6x1" ? "6x1" : "5x2";
+  const semanaDoCiclo = Math.floor(diff / 7) % 2;
+  const faseAtual = semanaDoCiclo === 0 ? faseInicial : (faseInicial === "5x2" ? "6x1" : "5x2");
+  const diaSemana = diff % 7;
+
+  if (faseAtual === "5x2") return diaSemana < 5 ? "WORK" : "OFF";
+  return diaSemana < 6 ? "WORK" : "OFF";
 }
 
 function mudarMes(v) {
@@ -1349,6 +1382,9 @@ function carregarConfigLocal() {
 
     return {
       nomeUsuario: typeof parsed.nomeUsuario === "string" ? parsed.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      tipoEscala: parsed.tipoEscala === "5x2_6x1" ? "5x2_6x1" : defaultConfig.tipoEscala,
+      inicioEscala: obterPartesData(parsed.inicioEscala) ? parsed.inicioEscala : defaultConfig.inicioEscala,
+      faseEscala: parsed.faseEscala === "6x1" ? "6x1" : defaultConfig.faseEscala,
       egoOffsetMin: Number.isFinite(parsed.egoOffsetMin) ? parsed.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(parsed.basOffsetMin) ? parsed.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(parsed.arrumarOffsetMin) ? parsed.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -1375,6 +1411,9 @@ async function carregarConfigUsuario() {
     const dados = doc.data() || {};
     const configNormalizada = {
       nomeUsuario: typeof dados.nome === "string" ? dados.nome.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      tipoEscala: dados.tipoEscala === "5x2_6x1" ? "5x2_6x1" : defaultConfig.tipoEscala,
+      inicioEscala: obterPartesData(dados.inicioEscala) ? dados.inicioEscala : defaultConfig.inicioEscala,
+      faseEscala: dados.faseEscala === "6x1" ? "6x1" : defaultConfig.faseEscala,
       egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -1391,6 +1430,9 @@ async function carregarConfigUsuario() {
 async function salvarConfigUsuario(config) {
   const configNormalizada = {
     nomeUsuario: (config.nomeUsuario || "").trim().toUpperCase(),
+    tipoEscala: config.tipoEscala === "5x2_6x1" ? "5x2_6x1" : "6x2",
+    inicioEscala: config.inicioEscala,
+    faseEscala: config.faseEscala === "6x1" ? "6x1" : "5x2",
     egoOffsetMin: config.egoOffsetMin,
     basOffsetMin: config.basOffsetMin,
     arrumarOffsetMin: config.arrumarOffsetMin
@@ -1400,6 +1442,9 @@ async function salvarConfigUsuario(config) {
     try {
       await db.collection("usuarios").doc(usuarioAtual.uid).collection("config").doc("user").set({
         nome: configNormalizada.nomeUsuario,
+        tipoEscala: configNormalizada.tipoEscala,
+        inicioEscala: configNormalizada.inicioEscala,
+        faseEscala: configNormalizada.faseEscala,
         egoOffsetMin: configNormalizada.egoOffsetMin,
         basOffsetMin: configNormalizada.basOffsetMin,
         arrumarOffsetMin: configNormalizada.arrumarOffsetMin
@@ -1414,6 +1459,10 @@ async function salvarConfigUsuario(config) {
 
 function preencherFormularioConfiguracao() {
   nomeUsuarioInput.value = configAtual.nomeUsuario;
+  if (tipoEscalaInput) tipoEscalaInput.value = configAtual.tipoEscala || defaultConfig.tipoEscala;
+  if (inicioEscalaInput) inicioEscalaInput.value = configAtual.inicioEscala || defaultConfig.inicioEscala;
+  if (faseEscalaInput) faseEscalaInput.value = configAtual.faseEscala || defaultConfig.faseEscala;
+  atualizarCamposTipoEscala();
   nomeAtualConfiguradoSpan.innerText = obterNomeExibicao(configAtual.nomeUsuario);
 
   const ego = paraHoraMinuto(configAtual.egoOffsetMin);
@@ -1436,9 +1485,24 @@ function preencherFormularioConfiguracao() {
 
 function lerConfigDoFormulario() {
   const nomeUsuario = (nomeUsuarioInput.value || "").trim().toUpperCase();
+  const tipoEscala = tipoEscalaInput?.value === "5x2_6x1" ? "5x2_6x1" : "6x2";
+  const inicioEscala = (inicioEscalaInput?.value || "").trim();
+  const faseEscala = faseEscalaInput?.value === "6x1" ? "6x1" : "5x2";
   const egoOffsetMin = paraMinutosTotais(egoHoursInput.value, egoMinutesInput.value);
   const basOffsetMin = paraMinutosTotais(basHoursInput.value, basMinutesInput.value);
   const arrumarOffsetMin = paraMinutosTotais(arrumarHoursInput.value, arrumarMinutesInput.value);
+
+  const partesInicioEscala = obterPartesData(inicioEscala);
+  if (!partesInicioEscala) {
+    alert("Escolha uma data válida para o início da escala.");
+    return null;
+  }
+
+  const dataInicioEscala = criarDataLocal(partesInicioEscala.ano, partesInicioEscala.mes, partesInicioEscala.dia);
+  if (tipoEscala === "5x2_6x1" && dataInicioEscala.getDay() !== 1) {
+    alert("Para escala 5x2 / 6x1, o início da contagem precisa ser uma segunda-feira.");
+    return null;
+  }
 
   if (egoOffsetMin === null || basOffsetMin === null || arrumarOffsetMin === null) {
     alert("Preencha horas e minutos com valores válidos.");
@@ -1447,10 +1511,21 @@ function lerConfigDoFormulario() {
 
   return {
     nomeUsuario,
+    tipoEscala,
+    inicioEscala: formatKey(dataInicioEscala),
+    faseEscala,
     egoOffsetMin,
     basOffsetMin,
     arrumarOffsetMin
   };
+}
+
+
+function atualizarCamposTipoEscala() {
+  const ehAlternada = tipoEscalaInput?.value === "5x2_6x1";
+  if (faseEscalaLabel) {
+    faseEscalaLabel.style.display = ehAlternada ? "flex" : "none";
+  }
 }
 
 function obterNomeExibicao(nome) {
