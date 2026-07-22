@@ -51,6 +51,8 @@
       </span>
     </button>
 
+    <button class="btn-export-pdf btn-add-day" id="addDayBtn" type="button">➕ Adicionar dia</button>
+
     <label class="upload">
       <span class="upload-icon">📄</span>
       <span class="btn-copy">
@@ -294,7 +296,6 @@
         <strong>Detalhes</strong>
         <div class="time-inputs">
           <label>Local <input type="text" id="editLocal" placeholder="BAS ou EGO"></label>
-          <label>Monitor <input type="text" id="editMonitor" placeholder="Nome do monitor"></label>
           <label>Sair de casa <input type="text" id="editSairCasa" placeholder="06:30"></label>
           <label>Começar a arrumar <input type="text" id="editArrumar" placeholder="05:30"></label>
         </div>
@@ -352,17 +353,17 @@
 <div class="settings-modal" id="dataFallbackModal" aria-hidden="true">
   <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="dataFallbackTitle">
     <div class="settings-topo">
-      <h2 id="dataFallbackTitle">Confirmar datas pelo nome do arquivo</h2>
+      <h2 id="dataFallbackTitle">Confirmar importação do PDF</h2>
       <button class="settings-close" id="closeDataFallbackModal" type="button" aria-label="Fechar confirmação de data">✕</button>
     </div>
-    <p class="settings-desc">As datas abaixo foram extraídas pelo nome do arquivo. Confira cada linha: se estiver certo, confirme; se não, edite e confirme.</p>
+    <p class="settings-desc">Confira os dias detectados pela tabela do PDF. Quando o PDF não tiver tabela reconhecida, informe a data manualmente.</p>
 
     <div class="viagens-table-wrap data-fallback-wrap">
       <table class="viagens-table data-fallback-table">
         <thead>
           <tr>
             <th>Arquivo</th>
-            <th>Data da escala</th>
+            <th>Dias detectados / data manual</th>
           </tr>
         </thead>
         <tbody id="dataFallbackTbody"></tbody>
