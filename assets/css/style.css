@@ -980,9 +980,10 @@ body.light-mode .export-grid input {
   inset: 0;
   background: rgba(2, 6, 23, 0.68);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 14px;
+  height: var(--app-visible-height, 100svh);
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   opacity: 0;
@@ -1002,9 +1003,10 @@ body.light-mode .export-grid input {
   border: 1px solid rgba(148, 163, 184, 0.22);
   background: linear-gradient(180deg, rgba(15, 23, 42, 1), rgba(30, 41, 59, 0.98));
   padding: 16px;
-  max-height: calc(100dvh - 28px);
+  max-height: calc(var(--app-visible-height, 100svh) - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
+  margin: auto 0;
   box-shadow: 0 20px 45px rgba(2, 6, 23, 0.5);
 }
 
