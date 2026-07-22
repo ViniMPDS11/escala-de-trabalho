@@ -470,7 +470,7 @@ function montarRegistroEscala(data, textoCelula) {
   return {
     data,
     entrada: hora,
-    saida: "-",
+    saida: calcularSaidaTurno(hora),
     local,
     sairCasa,
     arrumar,
@@ -602,7 +602,7 @@ function processarTexto(texto, opcoes = {}) {
 
   const horas = trecho.match(/\d{1,2}:\d{2}/g) || [];
   const entrada = horas[0] || "-";
-  const saida = horas[1] || "-";
+  const saida = calcularSaidaTurno(entrada);
 
   let local = trecho.includes("BAS") ? "BAS" :
     trecho.includes("EGO") ? "EGO" : "-";
@@ -750,14 +750,29 @@ function calcularArrumar(sairCasa) {
   return d.toTimeString().slice(0, 5);
 }
 
+function calcularSaidaTurno(entrada) {
+  if (!entrada || entrada === "-") return "-";
+
+  const partes = entrada.split(":").map(Number);
+  if (partes.length !== 2 || partes.some((parte) => !Number.isFinite(parte))) return "-";
+
+  const [h, m] = partes;
+  const d = new Date();
+  d.setHours(h + 9, m, 0, 0);
+  return d.toTimeString().slice(0, 5);
+}
+
 async function recalcularRegistrosAntigos() {
   const escalaRef = colecaoUsuario("escala");
   if (!escalaRef) return;
   const snapshot = await escalaRef.where("status", "==", "TRABALHO").get();
   const atualizacoes = [];
+  const hojeNumero = partesParaNumero(new Date());
 
   snapshot.forEach((doc) => {
     const dado = doc.data();
+    const dataRegistroNumero = partesParaNumero(dado.data);
+    if (dataRegistroNumero === null || dataRegistroNumero < hojeNumero) return;
 
     const novoSairCasa = calcularSaidaCasa(dado.entrada || "-", dado.local || "-");
     const novoArrumar = calcularArrumar(novoSairCasa);
@@ -765,6 +780,7 @@ async function recalcularRegistrosAntigos() {
     atualizacoes.push(
       escalaRef.doc(doc.id).set({
         ...dado,
+        saida: calcularSaidaTurno(dado.entrada || "-"),
         sairCasa: novoSairCasa,
         arrumar: novoArrumar
       })
