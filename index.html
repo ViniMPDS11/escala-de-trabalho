@@ -11,7 +11,7 @@
 
 <header class="app-header">
   <div class="header-inner">
-    <img class="brand-logo" src="./trivia-trens-logo.png" alt="Trivia Trens" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+    <img class="brand-logo" id="brandLogo" src="./assets/img-logo-trivia-white.svg" alt="Trivia Trens">
     <h1 class="brand-fallback">Trivia Trens</h1>
     <div class="header-controls">
       <div class="route-menu">
@@ -43,13 +43,15 @@
   <section class="page-section ativo" id="pageEscala">
 
   <div class="quick-actions">
-    <button class="btn-google dark" onclick="login()">
+    <button class="btn-google dark" id="loginGoogle" type="button">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       <span class="btn-copy">
         <span>Entrar com Google</span>
         <small>Acesse seus dados</small>
       </span>
     </button>
+
+    <button class="btn-export-pdf btn-add-day" id="addDayBtn" type="button">➕ Adicionar dia</button>
 
     <label class="upload">
       <span class="upload-icon">📄</span>
@@ -63,9 +65,9 @@
 
   <section class="calendar-shell">
     <div class="mes-controle">
-      <button onclick="mudarMes(-1)">‹</button>
+      <button id="prevMonthBtn" type="button">‹</button>
       <span id="mesAtual"></span>
-      <button onclick="mudarMes(1)">›</button>
+      <button id="nextMonthBtn" type="button">›</button>
     </div>
 
     <div class="week-header">
@@ -102,7 +104,7 @@
     </button>
   </section>
 
-  <button class="btn-hoje" onclick="irParaHoje()">Ir para hoje</button>
+  <button class="btn-hoje" id="todayBtn" type="button">Ir para hoje</button>
 
   <div id="lista"></div>
   </section>
@@ -174,6 +176,26 @@
         </div>
       </div>
 
+
+      <div class="settings-row">
+        <strong>Tipo de escala do calendário</strong>
+        <div class="time-inputs single-input">
+          <label>Escala
+            <select id="tipoEscala">
+              <option value="5x2_6x1">5x2 alternando com 6x1</option>
+              <option value="6x2">6x2</option>
+            </select>
+          </label>
+          <label>Dia de início da contagem <input type="date" id="inicioEscala"></label>
+          <label id="faseEscalaLabel">Esta segunda começa como
+            <select id="faseEscala">
+              <option value="5x2">5x2</option>
+              <option value="6x1">6x1</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
       <div class="settings-row">
         <strong>Descontar da entrada para sair de casa (EGO)</strong>
         <div class="time-inputs">
@@ -206,7 +228,7 @@
 
     <label class="toggle-retroativa" for="applyRetroactive">
       <input type="checkbox" id="applyRetroactive">
-      <span>Atualizar também os registros antigos já salvos.</span>
+      <span>Recalcular somente registros de hoje em diante.</span>
     </label>
 
     <div class="settings-actions">
@@ -294,7 +316,6 @@
         <strong>Detalhes</strong>
         <div class="time-inputs">
           <label>Local <input type="text" id="editLocal" placeholder="BAS ou EGO"></label>
-          <label>Monitor <input type="text" id="editMonitor" placeholder="Nome do monitor"></label>
           <label>Sair de casa <input type="text" id="editSairCasa" placeholder="06:30"></label>
           <label>Começar a arrumar <input type="text" id="editArrumar" placeholder="05:30"></label>
         </div>
@@ -312,28 +333,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuxMzfGyzPoq4yO6M8_BCVvnEyT-8XIe4",
-    authDomain: "escala-vinicius-m.firebaseapp.com",
-    projectId: "escala-vinicius-m",
-    storageBucket: "escala-vinicius-m.appspot.com",
-    messagingSenderId: "69262067102",
-    appId: "1:69262067102:web:fc0392b1abaae69009c28f"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-
-  window.db = firebase.firestore();
-</script>
+<script src="assets/js/firebase-init.js"></script>
 
 
 <div class="settings-modal" id="viewObservacaoModal" aria-hidden="true">
@@ -352,17 +356,17 @@
 <div class="settings-modal" id="dataFallbackModal" aria-hidden="true">
   <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="dataFallbackTitle">
     <div class="settings-topo">
-      <h2 id="dataFallbackTitle">Confirmar datas pelo nome do arquivo</h2>
+      <h2 id="dataFallbackTitle">Confirmar importação do PDF</h2>
       <button class="settings-close" id="closeDataFallbackModal" type="button" aria-label="Fechar confirmação de data">✕</button>
     </div>
-    <p class="settings-desc">As datas abaixo foram extraídas pelo nome do arquivo. Confira cada linha: se estiver certo, confirme; se não, edite e confirme.</p>
+    <p class="settings-desc">Confira os dias detectados pela tabela do PDF. Quando o PDF não tiver tabela reconhecida, informe a data manualmente.</p>
 
     <div class="viagens-table-wrap data-fallback-wrap">
       <table class="viagens-table data-fallback-table">
         <thead>
           <tr>
             <th>Arquivo</th>
-            <th>Data da escala</th>
+            <th>Dias detectados / data manual</th>
           </tr>
         </thead>
         <tbody id="dataFallbackTbody"></tbody>

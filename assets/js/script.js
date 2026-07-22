@@ -1,5 +1,3 @@
-const inicio = new Date(2026, 2, 11);
-
 let dataAtual = new Date();
 
 const mesesNome = [
@@ -9,19 +7,27 @@ const mesesNome = [
 
 const defaultConfig = {
   nomeUsuario: "",
+  tipoEscala: "6x2",
+  inicioEscala: "2026-03-11",
+  faseEscala: "5x2",
   egoOffsetMin: 100,
   basOffsetMin: 70,
   arrumarOffsetMin: 60
 };
 
-let configAtual = carregarConfigLocal();
 let usuarioAtual = null;
+let configAtual = carregarConfigLocal();
 let cardExpandidoData = null;
 let registroEditandoData = null;
 let viagemEditandoId = null;
 let viagensRegistros = carregarViagensLocal();
 let pendenciasDataPdf = [];
 
+const brandLogo = document.getElementById("brandLogo");
+const loginGoogleBtn = document.getElementById("loginGoogle");
+const prevMonthBtn = document.getElementById("prevMonthBtn");
+const nextMonthBtn = document.getElementById("nextMonthBtn");
+const todayBtn = document.getElementById("todayBtn");
 const pdfInput = document.getElementById("pdfInput");
 const uploadHint = document.getElementById("uploadHint");
 
@@ -40,6 +46,10 @@ const basMinutesInput = document.getElementById("basMinutes");
 const arrumarHoursInput = document.getElementById("arrumarHours");
 const arrumarMinutesInput = document.getElementById("arrumarMinutes");
 const nomeUsuarioInput = document.getElementById("nomeUsuario");
+const tipoEscalaInput = document.getElementById("tipoEscala");
+const inicioEscalaInput = document.getElementById("inicioEscala");
+const faseEscalaInput = document.getElementById("faseEscala");
+const faseEscalaLabel = document.getElementById("faseEscalaLabel");
 const nomeAtualConfiguradoSpan = document.getElementById("nomeAtualConfigurado");
 const filtroDiasKey = "escalaFiltroOcultarPassados";
 const temaClaroKey = "escalaTemaClaro";
@@ -52,7 +62,6 @@ const editStatusInput = document.getElementById("editStatus");
 const editEntradaInput = document.getElementById("editEntrada");
 const editSaidaInput = document.getElementById("editSaida");
 const editLocalInput = document.getElementById("editLocal");
-const editMonitorInput = document.getElementById("editMonitor");
 const editSairCasaInput = document.getElementById("editSairCasa");
 const editArrumarInput = document.getElementById("editArrumar");
 const pageEscala = document.getElementById("pageEscala");
@@ -96,6 +105,26 @@ const dataFallbackTbody = document.getElementById("dataFallbackTbody");
 const exportStartDateInput = document.getElementById("exportStartDate");
 const exportEndDateInput = document.getElementById("exportEndDate");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
+const addDayBtn = document.getElementById("addDayBtn");
+
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+brandLogo?.addEventListener("error", () => {
+  brandLogo.style.display = "none";
+  if (brandLogo.nextElementSibling) {
+    brandLogo.nextElementSibling.style.display = "block";
+  }
+});
+
+loginGoogleBtn?.addEventListener("click", login);
+prevMonthBtn?.addEventListener("click", () => mudarMes(-1));
+nextMonthBtn?.addEventListener("click", () => mudarMes(1));
+todayBtn?.addEventListener("click", irParaHoje);
+tipoEscalaInput?.addEventListener("change", atualizarCamposTipoEscala);
 
 pdfInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
@@ -111,12 +140,15 @@ pdfInput.addEventListener("change", async (e) => {
 
   for (let file of files) {
     try {
-      const texto = await extrairTextoPDF(file);
+      const pdfExtraido = await extrairTextoPDF(file);
       const dataNomeArquivo = extrairDataDoNomeArquivo(file.name);
+      const registrosExtraidos = extrairRegistrosTabelaPDF(pdfExtraido);
 
       pendenciasDataPdf.push({
         nomeArquivo: file.name,
-        texto,
+        texto: pdfExtraido.texto,
+        paginas: pdfExtraido.paginas,
+        registrosExtraidos,
         dataSugerida: dataNomeArquivo || ""
       });
     } catch (erro) {
@@ -231,6 +263,7 @@ closeDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 cancelDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 saveDataFallbackModalBtn?.addEventListener("click", confirmarDatasFallback);
 exportPdfBtn?.addEventListener("click", exportarEscalaPdf);
+addDayBtn?.addEventListener("click", abrirModalNovoDia);
 lightModeToggle?.addEventListener("change", () => {
   const ativo = lightModeToggle.checked;
   aplicarTema(ativo);
@@ -270,11 +303,24 @@ editViagemModal?.addEventListener("click", (e) => {
 
 function login() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider);
+  provider.setCustomParameters({ hd: "triviatrens.com.br" });
+  firebase.auth().signInWithPopup(provider).catch((erro) => {
+    console.error("Erro ao fazer login:", erro);
+    alert("Não foi possível entrar com o Google agora. Tente novamente.");
+  });
 }
 
-firebase.auth().onAuthStateChanged(user => {
+function emailCorporativoValido(user) {
+  return (user?.email || "").toLowerCase().endsWith("@triviatrens.com.br");
+}
+
+firebase.auth().onAuthStateChanged(async user => {
   if (user) {
+    if (!emailCorporativoValido(user)) {
+      alert("Use seu email corporativo da Trivia Trens (@triviatrens.com.br) para entrar.");
+      await firebase.auth().signOut();
+      return;
+    }
     usuarioAtual = user;
     document.querySelector(".btn-google").style.display = "none";
     if (logoutGoogleBtn) logoutGoogleBtn.style.display = "inline-flex";
@@ -288,14 +334,25 @@ firebase.auth().onAuthStateChanged(user => {
   }
 });
 
+function chaveUsuarioLocal(nome) {
+  return usuarioAtual?.uid ? `${nome}:${usuarioAtual.uid}` : nome;
+}
+
 function limparDadosEscalaLocal() {
-  localStorage.setItem("escala", "[]");
-  localStorage.setItem("viagensRegistros", "[]");
+  localStorage.setItem(chaveUsuarioLocal("escala"), "[]");
+  localStorage.setItem(chaveUsuarioLocal("viagensRegistros"), "[]");
   viagensRegistros = [];
 }
 
+function colecaoUsuario(nome) {
+  if (!usuarioAtual) return null;
+  return db.collection("usuarios").doc(usuarioAtual.uid).collection(nome);
+}
+
 async function carregarDados() {
-  const snapshot = await db.collection("escala").get();
+  const escalaRef = colecaoUsuario("escala");
+  if (!escalaRef) return;
+  const snapshot = await escalaRef.get();
 
   const dados = [];
 
@@ -303,24 +360,127 @@ async function carregarDados() {
     dados.push(doc.data());
   });
 
-  localStorage.setItem("escala", JSON.stringify(dados));
+  localStorage.setItem(chaveUsuarioLocal("escala"), JSON.stringify(dados));
 }
 
 async function extrairTextoPDF(file) {
   const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
 
   let texto = "";
+  const paginas = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const pagina = await pdf.getPage(i);
+    const viewport = pagina.getViewport({ scale: 1 });
     const conteudo = await pagina.getTextContent();
+    const itens = conteudo.items
+      .filter((item) => (item.str || "").trim())
+      .map((item) => ({
+        texto: item.str.trim(),
+        x: item.transform[4],
+        y: viewport.height - item.transform[5],
+        largura: item.width || 0,
+        altura: item.height || 0
+      }));
 
-    conteudo.items.forEach(item => {
-      texto += item.str + " ";
+    itens.forEach(item => {
+      texto += item.texto + " ";
     });
+    paginas.push({ largura: viewport.width, altura: viewport.height, itens });
   }
 
-  return texto;
+  return { texto, paginas };
+}
+
+function extrairRegistrosTabelaPDF(pdfExtraido) {
+  const nomeBusca = normalizarTextoPDF(configAtual.nomeUsuario || "");
+  if (!nomeBusca || !pdfExtraido?.paginas?.length) return [];
+
+  const registros = [];
+  pdfExtraido.paginas.forEach((pagina) => {
+    const itens = pagina.itens || [];
+    const datas = itens
+      .map((item) => ({ ...item, data: normalizarDataCabecalhoPDF(item.texto) }))
+      .filter((item) => item.data)
+      .sort((a, b) => a.x - b.x);
+
+    if (!datas.length) return;
+
+    const linhas = agruparItensPorLinhaPDF(itens);
+    const linhaUsuario = linhas.find((linha) => normalizarTextoPDF(linha.map((item) => item.texto).join(" ")).includes(nomeBusca));
+    if (!linhaUsuario) return;
+
+    datas.forEach((cabecalho, index) => {
+      const proximo = datas[index + 1];
+      const minX = cabecalho.x - 8;
+      const maxX = proximo ? proximo.x - 8 : cabecalho.x + Math.max(cabecalho.largura, 40) + 90;
+      const textosCelula = linhaUsuario
+        .filter((item) => item.x >= minX && item.x < maxX)
+        .map((item) => item.texto)
+        .filter((texto) => !normalizarTextoPDF(texto).includes(nomeBusca));
+      const textoCelula = textosCelula.join(" ").trim();
+      const registro = montarRegistroEscala(cabecalho.data, textoCelula);
+      if (registro) registros.push(registro);
+    });
+  });
+
+  return removerRegistrosDuplicados(registros);
+}
+
+function agruparItensPorLinhaPDF(itens) {
+  const linhas = [];
+  [...itens].sort((a, b) => a.y - b.y || a.x - b.x).forEach((item) => {
+    let linha = linhas.find((grupo) => Math.abs(grupo.y - item.y) <= 4);
+    if (!linha) {
+      linha = { y: item.y, itens: [] };
+      linhas.push(linha);
+    }
+    linha.itens.push(item);
+  });
+  return linhas.map((linha) => linha.itens.sort((a, b) => a.x - b.x));
+}
+
+function normalizarTextoPDF(valor) {
+  return (valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+function normalizarDataCabecalhoPDF(valor) {
+  const match = String(valor || "").match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!match) return "";
+  const hoje = new Date();
+  let ano = match[3] ? Number(match[3]) : hoje.getFullYear();
+  if (ano < 100) ano += 2000;
+  const dia = Number(match[1]);
+  const mes = Number(match[2]);
+  const data = criarDataLocal(ano, mes, dia);
+  if (Number.isNaN(data.getTime()) || data.getFullYear() !== ano || data.getMonth() + 1 !== mes || data.getDate() !== dia) return "";
+  return formatKey(data);
+}
+
+function montarRegistroEscala(data, textoCelula) {
+  const texto = normalizarTextoPDF(textoCelula);
+  if (!data) return null;
+  if (!texto || texto.includes("FOLGA")) return { data, status: "FOLGA" };
+
+  const hora = texto.match(/\d{1,2}:\d{2}/)?.[0] || "-";
+  const local = texto.match(/\b[A-Z]{2,4}\b/)?.[0] || "-";
+  const sairCasa = calcularSaidaCasa(hora, local);
+  const arrumar = calcularArrumar(sairCasa);
+
+  return {
+    data,
+    entrada: hora,
+    saida: calcularSaidaTurno(hora),
+    local,
+    sairCasa,
+    arrumar,
+    status: "TRABALHO"
+  };
+}
+
+function removerRegistrosDuplicados(registros) {
+  return [...new Map(registros.map((registro) => [registro.data, registro])).values()]
+    .sort((a, b) => (partesParaNumero(a.data) || 0) - (partesParaNumero(b.data) || 0));
 }
 
 function criarDataLocal(yyyy, mm, dd) {
@@ -442,23 +602,10 @@ function processarTexto(texto, opcoes = {}) {
 
   const horas = trecho.match(/\d{1,2}:\d{2}/g) || [];
   const entrada = horas[0] || "-";
-  const saida = horas[1] || "-";
+  const saida = calcularSaidaTurno(entrada);
 
   let local = trecho.includes("BAS") ? "BAS" :
     trecho.includes("EGO") ? "EGO" : "-";
-
-  let monitor = "-";
-
-  const match = trecho.match(/(BAS|EGO)\s+\w+\s+([A-Z\s]+)/);
-
-  if (match) {
-    monitor = match[2].trim();
-
-    monitor = monitor.split(/\s+\d{2,3}\s/)[0];
-    monitor = monitor.split("CONTROLE")[0];
-
-    monitor = monitor.trim();
-  }
 
   const sairCasa = calcularSaidaCasa(entrada, local);
   const arrumar = calcularArrumar(sairCasa);
@@ -468,7 +615,6 @@ function processarTexto(texto, opcoes = {}) {
     entrada,
     saida,
     local,
-    monitor,
     sairCasa,
     arrumar,
     status: "TRABALHO"
@@ -509,11 +655,16 @@ function abrirModalDataFallback() {
 
   dataFallbackTbody.innerHTML = pendenciasDataPdf.map((item, index) => {
     const valorInput = item.dataSugerida ? `value="${item.dataSugerida}"` : "";
+    const detectados = item.registrosExtraidos?.length
+      ? item.registrosExtraidos.map((registro) => formatarData(registro.data)).join(", ")
+      : "Nenhum dia detectado automaticamente";
+    const inputManual = item.registrosExtraidos?.length ? "" : `<input type="date" data-index="${index}" ${valorInput}>`;
     return `
       <tr>
         <td>${item.nomeArquivo}</td>
         <td>
-          <input type="date" data-index="${index}" ${valorInput}>
+          <div>${detectados}</div>
+          ${inputManual}
         </td>
       </tr>
     `;
@@ -544,7 +695,7 @@ async function confirmarDatasFallback() {
   const datasSelecionadas = inputs.map((input) => input.value);
 
   if (datasSelecionadas.some((data) => !data)) {
-    alert("Preencha uma data para todos os arquivos antes de continuar.");
+    alert("Preencha uma data para todos os arquivos sem tabela detectada antes de continuar.");
     return;
   }
 
@@ -553,9 +704,17 @@ async function confirmarDatasFallback() {
     saveDataFallbackModalBtn.innerText = "Importando...";
   }
 
+  let indiceManual = 0;
   for (let i = 0; i < pendenciasDataPdf.length; i++) {
     const item = pendenciasDataPdf[i];
-    await processarTexto(item.texto, { dataForcada: datasSelecionadas[i] });
+    if (item.registrosExtraidos?.length) {
+      for (const registro of item.registrosExtraidos) {
+        await salvar(registro);
+      }
+      continue;
+    }
+    await processarTexto(item.texto, { dataForcada: datasSelecionadas[indiceManual] });
+    indiceManual += 1;
   }
 
   await carregarDados();
@@ -591,19 +750,37 @@ function calcularArrumar(sairCasa) {
   return d.toTimeString().slice(0, 5);
 }
 
+function calcularSaidaTurno(entrada) {
+  if (!entrada || entrada === "-") return "-";
+
+  const partes = entrada.split(":").map(Number);
+  if (partes.length !== 2 || partes.some((parte) => !Number.isFinite(parte))) return "-";
+
+  const [h, m] = partes;
+  const d = new Date();
+  d.setHours(h + 9, m, 0, 0);
+  return d.toTimeString().slice(0, 5);
+}
+
 async function recalcularRegistrosAntigos() {
-  const snapshot = await db.collection("escala").where("status", "==", "TRABALHO").get();
+  const escalaRef = colecaoUsuario("escala");
+  if (!escalaRef) return;
+  const snapshot = await escalaRef.where("status", "==", "TRABALHO").get();
   const atualizacoes = [];
+  const hojeNumero = partesParaNumero(new Date());
 
   snapshot.forEach((doc) => {
     const dado = doc.data();
+    const dataRegistroNumero = partesParaNumero(dado.data);
+    if (dataRegistroNumero === null || dataRegistroNumero < hojeNumero) return;
 
     const novoSairCasa = calcularSaidaCasa(dado.entrada || "-", dado.local || "-");
     const novoArrumar = calcularArrumar(novoSairCasa);
 
     atualizacoes.push(
-      db.collection("escala").doc(doc.id).set({
+      escalaRef.doc(doc.id).set({
         ...dado,
+        saida: calcularSaidaTurno(dado.entrada || "-"),
         sairCasa: novoSairCasa,
         arrumar: novoArrumar
       })
@@ -615,13 +792,27 @@ async function recalcularRegistrosAntigos() {
 
 async function salvar(dado) {
   if (!usuarioAtual) return;
-  await db.collection("escala").doc(dado.data).set(dado);
+  await colecaoUsuario("escala")?.doc(dado.data).set(dado);
 }
 
 function getStatus(data) {
-  if (data < inicio) return "NONE";
-  const diff = Math.floor((data - inicio) / 86400000);
-  return diff % 8 < 6 ? "WORK" : "OFF";
+  const inicioEscala = parseDataEscala(configAtual.inicioEscala);
+  if (!inicioEscala || data < inicioEscala) return "NONE";
+
+  const diff = Math.floor((inicioDoDia(data) - inicioDoDia(inicioEscala)) / 86400000);
+  const tipoEscala = configAtual.tipoEscala === "5x2_6x1" ? "5x2_6x1" : "6x2";
+
+  if (tipoEscala === "6x2") {
+    return diff % 8 < 6 ? "WORK" : "OFF";
+  }
+
+  const faseInicial = configAtual.faseEscala === "6x1" ? "6x1" : "5x2";
+  const semanaDoCiclo = Math.floor(diff / 7) % 2;
+  const faseAtual = semanaDoCiclo === 0 ? faseInicial : (faseInicial === "5x2" ? "6x1" : "5x2");
+  const diaSemana = diff % 7;
+
+  if (faseAtual === "5x2") return diaSemana < 5 ? "WORK" : "OFF";
+  return diaSemana < 6 ? "WORK" : "OFF";
 }
 
 function mudarMes(v) {
@@ -640,7 +831,7 @@ function render() {
 function preencherPeriodoExportacaoPadrao() {
   if (!exportStartDateInput || !exportEndDateInput) return;
 
-  const dados = JSON.parse(localStorage.getItem("escala") || "[]")
+  const dados = JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala")) || "[]")
     .map((item) => item?.data)
     .filter(Boolean)
     .sort();
@@ -664,7 +855,7 @@ function coletarRegistrosPeriodo(dataInicio, dataFim) {
   const fimNumero = partesParaNumero(dataFim);
   if (inicioNumero === null || fimNumero === null) return [];
 
-  return (JSON.parse(localStorage.getItem("escala") || "[]") || [])
+  return (JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala")) || "[]") || [])
     .filter((item) => {
       const numero = partesParaNumero(item.data);
       return numero !== null && numero >= inicioNumero && numero <= fimNumero;
@@ -774,7 +965,7 @@ function renderCalendar() {
   const dias = new Date(ano, mes + 1, 0).getDate();
   const hoje = formatKey(new Date());
 
-  let dados = JSON.parse(localStorage.getItem("escala")) || [];
+  let dados = JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala"))) || [];
 
   const primeiroDia = new Date(ano, mes, 1).getDay();
 
@@ -820,7 +1011,7 @@ function renderCalendar() {
 function renderLista() {
   const lista = document.getElementById("lista");
 
-  let dados = JSON.parse(localStorage.getItem("escala") || "[]");
+  let dados = JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala")) || "[]");
   dados.sort((a, b) => {
     const aData = parseDataEscala(a.data);
     const bData = parseDataEscala(b.data);
@@ -937,7 +1128,6 @@ function renderLista() {
               <div class="card-linha"><strong>Entrada</strong>${d.entrada}</div>
               <div class="card-linha"><strong>Saída</strong>${d.saida}</div>
               <div class="card-linha"><strong>Local</strong>${d.local}</div>
-              <div class="card-linha"><strong>Monitor</strong>${d.monitor}</div>
               <div class="card-linha"><strong>Sair de casa</strong>${d.sairCasa}</div>
               <div class="card-linha"><strong>Começar a arrumar</strong>${d.arrumar}</div>
             </div>
@@ -1199,7 +1389,7 @@ function aplicarTema(modoClaro) {
 }
 
 function carregarConfigLocal() {
-  const raw = localStorage.getItem("escalaConfig");
+  const raw = localStorage.getItem(chaveUsuarioLocal("escalaConfig"));
 
   if (!raw) return { ...defaultConfig };
 
@@ -1208,6 +1398,9 @@ function carregarConfigLocal() {
 
     return {
       nomeUsuario: typeof parsed.nomeUsuario === "string" ? parsed.nomeUsuario.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      tipoEscala: parsed.tipoEscala === "5x2_6x1" ? "5x2_6x1" : defaultConfig.tipoEscala,
+      inicioEscala: obterPartesData(parsed.inicioEscala) ? parsed.inicioEscala : defaultConfig.inicioEscala,
+      faseEscala: parsed.faseEscala === "6x1" ? "6x1" : defaultConfig.faseEscala,
       egoOffsetMin: Number.isFinite(parsed.egoOffsetMin) ? parsed.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(parsed.basOffsetMin) ? parsed.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(parsed.arrumarOffsetMin) ? parsed.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -1218,14 +1411,14 @@ function carregarConfigLocal() {
 }
 
 function salvarConfigLocal(config) {
-  localStorage.setItem("escalaConfig", JSON.stringify(config));
+  localStorage.setItem(chaveUsuarioLocal("escalaConfig"), JSON.stringify(config));
 }
 
 async function carregarConfigUsuario() {
   if (!usuarioAtual) return { ...defaultConfig };
 
   try {
-    const doc = await db.collection("config").doc("user").get();
+    const doc = await db.collection("usuarios").doc(usuarioAtual.uid).collection("config").doc("user").get();
 
     if (!doc.exists) {
       return { ...configAtual };
@@ -1234,6 +1427,9 @@ async function carregarConfigUsuario() {
     const dados = doc.data() || {};
     const configNormalizada = {
       nomeUsuario: typeof dados.nome === "string" ? dados.nome.trim().toUpperCase() : defaultConfig.nomeUsuario,
+      tipoEscala: dados.tipoEscala === "5x2_6x1" ? "5x2_6x1" : defaultConfig.tipoEscala,
+      inicioEscala: obterPartesData(dados.inicioEscala) ? dados.inicioEscala : defaultConfig.inicioEscala,
+      faseEscala: dados.faseEscala === "6x1" ? "6x1" : defaultConfig.faseEscala,
       egoOffsetMin: Number.isFinite(dados.egoOffsetMin) ? dados.egoOffsetMin : defaultConfig.egoOffsetMin,
       basOffsetMin: Number.isFinite(dados.basOffsetMin) ? dados.basOffsetMin : defaultConfig.basOffsetMin,
       arrumarOffsetMin: Number.isFinite(dados.arrumarOffsetMin) ? dados.arrumarOffsetMin : defaultConfig.arrumarOffsetMin
@@ -1250,6 +1446,9 @@ async function carregarConfigUsuario() {
 async function salvarConfigUsuario(config) {
   const configNormalizada = {
     nomeUsuario: (config.nomeUsuario || "").trim().toUpperCase(),
+    tipoEscala: config.tipoEscala === "5x2_6x1" ? "5x2_6x1" : "6x2",
+    inicioEscala: config.inicioEscala,
+    faseEscala: config.faseEscala === "6x1" ? "6x1" : "5x2",
     egoOffsetMin: config.egoOffsetMin,
     basOffsetMin: config.basOffsetMin,
     arrumarOffsetMin: config.arrumarOffsetMin
@@ -1257,8 +1456,11 @@ async function salvarConfigUsuario(config) {
 
   if (usuarioAtual) {
     try {
-      await db.collection("config").doc("user").set({
+      await db.collection("usuarios").doc(usuarioAtual.uid).collection("config").doc("user").set({
         nome: configNormalizada.nomeUsuario,
+        tipoEscala: configNormalizada.tipoEscala,
+        inicioEscala: configNormalizada.inicioEscala,
+        faseEscala: configNormalizada.faseEscala,
         egoOffsetMin: configNormalizada.egoOffsetMin,
         basOffsetMin: configNormalizada.basOffsetMin,
         arrumarOffsetMin: configNormalizada.arrumarOffsetMin
@@ -1273,6 +1475,10 @@ async function salvarConfigUsuario(config) {
 
 function preencherFormularioConfiguracao() {
   nomeUsuarioInput.value = configAtual.nomeUsuario;
+  if (tipoEscalaInput) tipoEscalaInput.value = configAtual.tipoEscala || defaultConfig.tipoEscala;
+  if (inicioEscalaInput) inicioEscalaInput.value = configAtual.inicioEscala || defaultConfig.inicioEscala;
+  if (faseEscalaInput) faseEscalaInput.value = configAtual.faseEscala || defaultConfig.faseEscala;
+  atualizarCamposTipoEscala();
   nomeAtualConfiguradoSpan.innerText = obterNomeExibicao(configAtual.nomeUsuario);
 
   const ego = paraHoraMinuto(configAtual.egoOffsetMin);
@@ -1295,9 +1501,24 @@ function preencherFormularioConfiguracao() {
 
 function lerConfigDoFormulario() {
   const nomeUsuario = (nomeUsuarioInput.value || "").trim().toUpperCase();
+  const tipoEscala = tipoEscalaInput?.value === "5x2_6x1" ? "5x2_6x1" : "6x2";
+  const inicioEscala = (inicioEscalaInput?.value || "").trim();
+  const faseEscala = faseEscalaInput?.value === "6x1" ? "6x1" : "5x2";
   const egoOffsetMin = paraMinutosTotais(egoHoursInput.value, egoMinutesInput.value);
   const basOffsetMin = paraMinutosTotais(basHoursInput.value, basMinutesInput.value);
   const arrumarOffsetMin = paraMinutosTotais(arrumarHoursInput.value, arrumarMinutesInput.value);
+
+  const partesInicioEscala = obterPartesData(inicioEscala);
+  if (!partesInicioEscala) {
+    alert("Escolha uma data válida para o início da escala.");
+    return null;
+  }
+
+  const dataInicioEscala = criarDataLocal(partesInicioEscala.ano, partesInicioEscala.mes, partesInicioEscala.dia);
+  if (tipoEscala === "5x2_6x1" && dataInicioEscala.getDay() !== 1) {
+    alert("Para escala 5x2 / 6x1, o início da contagem precisa ser uma segunda-feira.");
+    return null;
+  }
 
   if (egoOffsetMin === null || basOffsetMin === null || arrumarOffsetMin === null) {
     alert("Preencha horas e minutos com valores válidos.");
@@ -1306,18 +1527,44 @@ function lerConfigDoFormulario() {
 
   return {
     nomeUsuario,
+    tipoEscala,
+    inicioEscala: formatKey(dataInicioEscala),
+    faseEscala,
     egoOffsetMin,
     basOffsetMin,
     arrumarOffsetMin
   };
 }
 
+
+function atualizarCamposTipoEscala() {
+  const ehAlternada = tipoEscalaInput?.value === "5x2_6x1";
+  if (faseEscalaLabel) {
+    faseEscalaLabel.style.display = ehAlternada ? "flex" : "none";
+  }
+}
+
 function obterNomeExibicao(nome) {
   return nome ? nome : "(sem nome configurado)";
 }
 
+function abrirModalNovoDia() {
+  registroEditandoData = null;
+  preencherFormularioEdicao({
+    data: formatKey(new Date()),
+    status: "TRABALHO",
+    entrada: "-",
+    saida: "-",
+    local: "-",
+    sairCasa: "-",
+    arrumar: "-"
+  });
+  editModal.classList.add("aberto");
+  editModal.setAttribute("aria-hidden", "false");
+}
+
 function abrirModalEdicao(data) {
-  const dados = JSON.parse(localStorage.getItem("escala") || "[]");
+  const dados = JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala")) || "[]");
   const registro = dados.find((item) => item.data === data);
 
   if (!registro) {
@@ -1344,19 +1591,18 @@ function preencherFormularioEdicao(registro) {
   editEntradaInput.value = registro.entrada || "-";
   editSaidaInput.value = registro.saida || "-";
   editLocalInput.value = registro.local || "-";
-  editMonitorInput.value = registro.monitor || "-";
   editSairCasaInput.value = registro.sairCasa || "-";
   editArrumarInput.value = registro.arrumar || "-";
 }
 
 async function salvarEdicaoRegistro() {
-  if (!registroEditandoData) return;
+  const criandoNovoRegistro = !registroEditandoData;
   const dataOriginal = registroEditandoData;
 
-  const dados = JSON.parse(localStorage.getItem("escala") || "[]");
-  const indice = dados.findIndex((item) => item.data === dataOriginal);
+  const dados = JSON.parse(localStorage.getItem(chaveUsuarioLocal("escala")) || "[]");
+  const indice = criandoNovoRegistro ? -1 : dados.findIndex((item) => item.data === dataOriginal);
 
-  if (indice === -1) {
+  if (!criandoNovoRegistro && indice === -1) {
     alert("Não foi possível localizar o registro para salvar.");
     return;
   }
@@ -1386,7 +1632,6 @@ async function salvarEdicaoRegistro() {
     entrada: status === "FOLGA" ? "-" : valorOuTraco(editEntradaInput.value),
     saida: status === "FOLGA" ? "-" : valorOuTraco(editSaidaInput.value),
     local: status === "FOLGA" ? "-" : valorOuTraco(editLocalInput.value).toUpperCase(),
-    monitor: status === "FOLGA" ? "-" : valorOuTraco(editMonitorInput.value),
     sairCasa: status === "FOLGA" ? "-" : valorOuTraco(editSairCasaInput.value),
     arrumar: status === "FOLGA" ? "-" : valorOuTraco(editArrumarInput.value)
   };
@@ -1395,14 +1640,18 @@ async function salvarEdicaoRegistro() {
   saveEditModalBtn.innerText = "Salvando...";
 
   try {
-    dados[indice] = registroAtualizado;
-    localStorage.setItem("escala", JSON.stringify(dados));
+    if (criandoNovoRegistro) {
+      dados.push(registroAtualizado);
+    } else {
+      dados[indice] = registroAtualizado;
+    }
+    localStorage.setItem(chaveUsuarioLocal("escala"), JSON.stringify(dados));
     fecharModalEdicao();
     render();
 
     if (usuarioAtual) {
-      if (dataOriginal !== novaData) {
-        await db.collection("escala").doc(dataOriginal).delete();
+      if (!criandoNovoRegistro && dataOriginal !== novaData) {
+        await colecaoUsuario("escala")?.doc(dataOriginal).delete();
       }
       await salvar(registroAtualizado);
     }
@@ -1462,7 +1711,7 @@ function aplicarRotaPelaHash() {
 
 function carregarViagensLocal() {
   try {
-    const raw = localStorage.getItem("viagensRegistros") || "[]";
+    const raw = localStorage.getItem(chaveUsuarioLocal("viagensRegistros")) || "[]";
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -1471,7 +1720,7 @@ function carregarViagensLocal() {
 }
 
 function salvarViagensLocal() {
-  localStorage.setItem("viagensRegistros", JSON.stringify(viagensRegistros));
+  localStorage.setItem(chaveUsuarioLocal("viagensRegistros"), JSON.stringify(viagensRegistros));
 }
 
 async function carregarViagens() {
@@ -1483,7 +1732,7 @@ async function carregarViagens() {
   }
 
   try {
-    const snapshot = await db.collection("Prefix").get();
+    const snapshot = await colecaoUsuario("Prefix").get();
     viagensRegistros = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     salvarViagensLocal();
   } catch (erro) {
@@ -1529,7 +1778,7 @@ async function salvarNovaViagem(event) {
 
   try {
     if (usuarioAtual) {
-      const docRef = await db.collection("Prefix").add(registro);
+      const docRef = await colecaoUsuario("Prefix").add(registro);
       registro.id = docRef.id;
     } else {
       registro.id = (window.crypto?.randomUUID?.() || `local-${Date.now()}-${Math.random().toString(16).slice(2)}`);
@@ -1721,7 +1970,7 @@ async function salvarEdicaoViagem() {
     viagensRegistros[indice] = atualizado;
     salvarViagensLocal();
     if (usuarioAtual) {
-      await db.collection("Prefix").doc(viagemEditandoId).set(atualizado, { merge: true });
+      await colecaoUsuario("Prefix").doc(viagemEditandoId).set(atualizado, { merge: true });
     }
     filtroDiaViagensInput.value = atualizado.data;
     fecharModalEdicaoViagem();
@@ -1743,7 +1992,7 @@ async function excluirViagem(id) {
     viagensRegistros = viagensRegistros.filter((item) => item.id !== id);
     salvarViagensLocal();
     if (usuarioAtual) {
-      await db.collection("Prefix").doc(id).delete();
+      await colecaoUsuario("Prefix").doc(id).delete();
     }
     selecionarUltimoDiaViagens();
     renderTabelaViagens();

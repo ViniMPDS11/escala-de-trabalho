@@ -309,6 +309,10 @@ h1 {
   cursor: pointer;
 }
 
+.btn-add-day {
+  margin-top: 0;
+}
+
 .btn-export-pdf svg {
   width: 18px;
   height: 18px;
