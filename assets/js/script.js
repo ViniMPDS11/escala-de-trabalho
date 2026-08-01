@@ -421,15 +421,19 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
     if (!datas.length) return;
 
     const linhas = agruparItensPorLinhaPDF(itens);
-    const linhaUsuario = linhas.find((linha) => normalizarTextoPDF(linha.map((item) => item.texto).join(" ")).includes(nomeBusca));
+    const linhaUsuario = encontrarLinhaUsuarioPDF(linhas, nomeBusca);
     if (!linhaUsuario) return;
+
+    const faixaVerticalUsuario = calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario);
 
     datas.forEach((cabecalho, index) => {
       const proximo = datas[index + 1];
       const minX = cabecalho.x - 8;
       const maxX = proximo ? proximo.x - 8 : cabecalho.x + Math.max(cabecalho.largura, 40) + 90;
-      const textosCelula = linhaUsuario
+      const textosCelula = itens
         .filter((item) => item.x >= minX && item.x < maxX)
+        .filter((item) => item.y >= faixaVerticalUsuario.minY && item.y < faixaVerticalUsuario.maxY)
+        .sort((a, b) => a.x - b.x)
         .map((item) => item.texto)
         .filter((texto) => !normalizarTextoPDF(texto).includes(nomeBusca));
       const textoCelula = textosCelula.join(" ").trim();
@@ -439,6 +443,46 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
   });
 
   return removerRegistrosDuplicados(registros);
+}
+
+function encontrarLinhaUsuarioPDF(linhas, nomeBusca) {
+  const linhasComNome = linhas
+    .map((itens, index) => ({
+      index,
+      itens,
+      texto: normalizarTextoPDF(itens.map((item) => item.texto).join(" "))
+    }))
+    .filter((linha) => linha.texto.includes(nomeBusca));
+
+  if (!linhasComNome.length) return null;
+
+  const linhaExata = linhasComNome.find((linha) => {
+    const textosNormalizados = linha.itens.map((item) => normalizarTextoPDF(item.texto));
+    return textosNormalizados.some((texto) => texto === nomeBusca);
+  });
+
+  return linhaExata || linhasComNome[0];
+}
+
+function calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario) {
+  const linhasOrdenadas = linhas
+    .map((itens) => ({ y: mediaLinhaPDF(itens), itens }))
+    .sort((a, b) => a.y - b.y);
+  const yUsuario = mediaLinhaPDF(linhaUsuario.itens || linhaUsuario);
+  const indice = linhasOrdenadas.findIndex((linha) => Math.abs(linha.y - yUsuario) <= 0.5);
+  const linhaAnterior = indice > 0 ? linhasOrdenadas[indice - 1] : null;
+  const proximaLinha = indice >= 0 && indice < linhasOrdenadas.length - 1 ? linhasOrdenadas[indice + 1] : null;
+  const alturaMedia = Math.max(...(linhaUsuario.itens || linhaUsuario).map((item) => item.altura || 0), 10);
+
+  return {
+    minY: linhaAnterior ? (linhaAnterior.y + yUsuario) / 2 : yUsuario - alturaMedia,
+    maxY: proximaLinha ? (yUsuario + proximaLinha.y) / 2 : yUsuario + alturaMedia
+  };
+}
+
+function mediaLinhaPDF(itens) {
+  if (!itens?.length) return 0;
+  return itens.reduce((total, item) => total + item.y, 0) / itens.length;
 }
 
 function agruparItensPorLinhaPDF(itens) {
