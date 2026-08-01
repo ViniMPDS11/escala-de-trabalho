@@ -420,11 +420,12 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
 
     if (!datas.length) return;
 
+    const primeiraColunaHorarioX = datas[0].x - 8;
     const linhas = agruparItensPorLinhaPDF(itens);
-    const linhaUsuario = encontrarLinhaUsuarioPDF(linhas, nomeBusca);
+    const linhaUsuario = encontrarLinhaUsuarioPDF(linhas, itens, nomeBusca, primeiraColunaHorarioX);
     if (!linhaUsuario) return;
 
-    const faixaVerticalUsuario = calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario);
+    const faixaVerticalUsuario = linhaUsuario.faixaVertical || calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario);
 
     datas.forEach((cabecalho, index) => {
       const proximo = datas[index + 1];
@@ -445,34 +446,86 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
   return removerRegistrosDuplicados(registros);
 }
 
-function encontrarLinhaUsuarioPDF(linhas, nomeBusca) {
-  const linhasComNome = linhas
-    .map((itens, index) => ({
-      index,
-      itens,
-      texto: normalizarTextoPDF(itens.map((item) => item.texto).join(" "))
-    }))
-    .filter((linha) => linha.texto.includes(nomeBusca));
+function encontrarLinhaUsuarioPDF(linhas, itens, nomeBusca, primeiraColunaHorarioX) {
+  const candidatosPorCodigo = encontrarLinhasPorCodigoFuncionarioPDF(itens, primeiraColunaHorarioX);
+  const candidatos = candidatosPorCodigo.length
+    ? candidatosPorCodigo
+    : linhas.map((linha) => ({ itens: linha, faixaVertical: calcularFaixaVerticalLinhaUsuarioPDF(linhas, linha) }));
 
-  if (!linhasComNome.length) return null;
+  const candidatosComPontuacao = candidatos
+    .map((linha) => {
+      const itensNome = linha.itens
+        .filter((item) => item.x < primeiraColunaHorarioX)
+        .sort((a, b) => a.x - b.x);
+      const textoNome = normalizarTextoPDF(itensNome.map((item) => item.texto).join(" "));
+      const textosIndividuais = itensNome.map((item) => normalizarTextoPDF(item.texto));
 
-  const linhaExata = linhasComNome.find((linha) => {
-    const textosNormalizados = linha.itens.map((item) => normalizarTextoPDF(item.texto));
-    return textosNormalizados.some((texto) => texto === nomeBusca);
+      return {
+        ...linha,
+        pontuacao: calcularPontuacaoLinhaUsuarioPDF(textoNome, textosIndividuais, nomeBusca)
+      };
+    })
+    .filter((linha) => linha.pontuacao > 0)
+    .sort((a, b) => b.pontuacao - a.pontuacao);
+
+  return candidatosComPontuacao[0] || null;
+}
+
+function encontrarLinhasPorCodigoFuncionarioPDF(itens, primeiraColunaHorarioX) {
+  const codigoFuncionarioRegex = /^[A-Z]{1,3}\d{2,4}$/;
+  const codigos = itens
+    .filter((item) => item.x < primeiraColunaHorarioX)
+    .filter((item) => codigoFuncionarioRegex.test(normalizarTextoPDF(item.texto)))
+    .sort((a, b) => a.y - b.y);
+
+  return codigos.map((codigo, index) => {
+    const codigoAnterior = codigos[index - 1];
+    const proximoCodigo = codigos[index + 1];
+    const alturaMedia = Math.max(codigo.altura || 0, 10);
+    const minY = codigoAnterior ? (codigoAnterior.y + codigo.y) / 2 : codigo.y - alturaMedia;
+    const maxY = proximoCodigo ? (codigo.y + proximoCodigo.y) / 2 : codigo.y + alturaMedia;
+    const itensLinha = itens
+      .filter((item) => item.y >= minY && item.y < maxY)
+      .sort((a, b) => a.x - b.x);
+
+    return {
+      itens: itensLinha,
+      faixaVertical: { minY, maxY }
+    };
   });
+}
 
-  return linhaExata || linhasComNome[0];
+function calcularPontuacaoLinhaUsuarioPDF(textoNome, textosIndividuais, nomeBusca) {
+  if (!textoNome.includes(nomeBusca)) return 0;
+
+  const termosBusca = nomeBusca.split(" ").filter(Boolean);
+  const contemTodosTermos = termosBusca.every((termo) => textoNome.includes(termo));
+  if (!contemTodosTermos) return 0;
+
+  let pontuacao = 10;
+
+  if (textosIndividuais.some((texto) => texto === nomeBusca)) pontuacao += 100;
+  if (textosIndividuais.some((texto) => texto.startsWith(`${nomeBusca} `))) pontuacao += 60;
+  if (textosIndividuais.filter((texto) => texto.includes(nomeBusca)).length > 1) pontuacao += 30;
+  if (new RegExp(`(^| )${escaparRegex(nomeBusca)}( |$)`).test(textoNome)) pontuacao += 20;
+
+  return pontuacao;
+}
+
+function escaparRegex(valor) {
+  return String(valor).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario) {
+  const itensLinhaUsuario = linhaUsuario.itens || linhaUsuario;
   const linhasOrdenadas = linhas
     .map((itens) => ({ y: mediaLinhaPDF(itens), itens }))
     .sort((a, b) => a.y - b.y);
-  const yUsuario = mediaLinhaPDF(linhaUsuario.itens || linhaUsuario);
+  const yUsuario = mediaLinhaPDF(itensLinhaUsuario);
   const indice = linhasOrdenadas.findIndex((linha) => Math.abs(linha.y - yUsuario) <= 0.5);
   const linhaAnterior = indice > 0 ? linhasOrdenadas[indice - 1] : null;
   const proximaLinha = indice >= 0 && indice < linhasOrdenadas.length - 1 ? linhasOrdenadas[indice + 1] : null;
-  const alturaMedia = Math.max(...(linhaUsuario.itens || linhaUsuario).map((item) => item.altura || 0), 10);
+  const alturaMedia = Math.max(...itensLinhaUsuario.map((item) => item.altura || 0), 10);
 
   return {
     minY: linhaAnterior ? (linhaAnterior.y + yUsuario) / 2 : yUsuario - alturaMedia,
