@@ -119,6 +119,7 @@ const dataFallbackTbody = document.getElementById("dataFallbackTbody");
 const exportStartDateInput = document.getElementById("exportStartDate");
 const exportEndDateInput = document.getElementById("exportEndDate");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
+const exportImageBtn = document.getElementById("exportImageBtn");
 const addDayBtn = document.getElementById("addDayBtn");
 
 
@@ -277,6 +278,7 @@ closeDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 cancelDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 saveDataFallbackModalBtn?.addEventListener("click", confirmarDatasFallback);
 exportPdfBtn?.addEventListener("click", exportarEscalaPdf);
+exportImageBtn?.addEventListener("click", exportarImagemMes);
 addDayBtn?.addEventListener("click", abrirModalNovoDia);
 lightModeToggle?.addEventListener("change", () => {
   const ativo = lightModeToggle.checked;
@@ -1060,6 +1062,234 @@ function exportarEscalaPdf() {
     exportPdfBtn.disabled = false;
     exportPdfBtn.querySelector("span").innerText = "Exportar período em PDF";
   }
+}
+
+async function exportarImagemMes() {
+  if (!exportImageBtn) return;
+
+  if (!window.HTMLCanvasElement) {
+    alert("Seu navegador não permite gerar a imagem agora.");
+    return;
+  }
+
+  exportImageBtn.disabled = true;
+  const textoOriginal = exportImageBtn.querySelector("span")?.innerText || "Exportar imagem do mês";
+  if (exportImageBtn.querySelector("span")) exportImageBtn.querySelector("span").innerText = "Gerando imagem...";
+
+  try {
+    const blob = await gerarImagemMesSelecionado();
+    if (!blob) throw new Error("Canvas não gerou a imagem.");
+
+    const ano = dataAtual.getFullYear();
+    const mes = String(dataAtual.getMonth() + 1).padStart(2, "0");
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `escala-${ano}-${mes}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (erro) {
+    console.error("Erro ao exportar imagem do mês:", erro);
+    alert("Não foi possível exportar a imagem do mês. Tente novamente.");
+  } finally {
+    exportImageBtn.disabled = false;
+    if (exportImageBtn.querySelector("span")) exportImageBtn.querySelector("span").innerText = textoOriginal;
+  }
+}
+
+async function gerarImagemMesSelecionado() {
+  const largura = 1400;
+  const altura = 1700;
+  const margem = 70;
+  const canvas = document.createElement("canvas");
+  canvas.width = largura;
+  canvas.height = altura;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Contexto 2D indisponível.");
+
+  const cores = {
+    azul: "#1d1d6b",
+    verde: "#199e48",
+    laranja: "#fe5e1d",
+    branco: "#fff",
+    preto: "#000",
+    cinza: "#f3f4f6",
+    borda: "#d8dce8"
+  };
+  const ano = dataAtual.getFullYear();
+  const mes = dataAtual.getMonth();
+  const registrosMes = coletarRegistrosMes(ano, mes);
+  const nomeGuerra = obterNomeExibicao(configAtual.nomeUsuario || "");
+  const tituloMes = `${mesesNome[mes]} de ${ano}`;
+
+  ctx.fillStyle = cores.branco;
+  ctx.fillRect(0, 0, largura, altura);
+
+  desenharRetanguloArredondado(ctx, margem, margem, largura - margem * 2, 240, 34, cores.azul);
+  const logo = await carregarImagem("./assets/img-logo-trivia-white.svg").catch(() => null);
+  if (logo) {
+    ctx.drawImage(logo, margem + 42, margem + 42, 360, 60);
+  } else {
+    ctx.fillStyle = cores.branco;
+    ctx.font = "bold 42px Arial, sans-serif";
+    ctx.fillText("Trivia Trens", margem + 42, margem + 88);
+  }
+
+  ctx.fillStyle = cores.branco;
+  ctx.textAlign = "right";
+  ctx.font = "bold 58px Arial, sans-serif";
+  ctx.fillText("Escala mensal", largura - margem - 42, margem + 92);
+  ctx.font = "bold 42px Arial, sans-serif";
+  ctx.fillText(tituloMes, largura - margem - 42, margem + 150);
+  ctx.font = "28px Arial, sans-serif";
+  ctx.fillText(`Nome de guerra: ${nomeGuerra || "Não configurado"}`, largura - margem - 42, margem + 197);
+  ctx.textAlign = "left";
+
+  const legendaY = margem + 280;
+  desenharLegendaImagem(ctx, margem, legendaY, cores);
+
+  const calendarioX = margem;
+  const calendarioY = legendaY + 90;
+  const calendarioLargura = largura - margem * 2;
+  const headerSemanaAltura = 72;
+  const celulaLargura = calendarioLargura / 7;
+  const celulaAltura = 165;
+  const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const totalCelulas = Math.ceil((primeiroDia + diasNoMes) / 7) * 7;
+
+  desenharRetanguloArredondado(ctx, calendarioX, calendarioY, calendarioLargura, headerSemanaAltura + (totalCelulas / 7) * celulaAltura, 26, cores.branco, cores.borda);
+
+  diasSemana.forEach((dia, index) => {
+    const x = calendarioX + index * celulaLargura;
+    ctx.fillStyle = cores.azul;
+    ctx.fillRect(x, calendarioY, celulaLargura, headerSemanaAltura);
+    ctx.fillStyle = cores.branco;
+    ctx.font = "bold 26px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(dia, x + celulaLargura / 2, calendarioY + 45);
+  });
+
+  for (let celula = 0; celula < totalCelulas; celula++) {
+    const dia = celula - primeiroDia + 1;
+    const coluna = celula % 7;
+    const linha = Math.floor(celula / 7);
+    const x = calendarioX + coluna * celulaLargura;
+    const y = calendarioY + headerSemanaAltura + linha * celulaAltura;
+
+    ctx.strokeStyle = cores.borda;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, celulaLargura, celulaAltura);
+
+    if (dia < 1 || dia > diasNoMes) {
+      ctx.fillStyle = "#f8f8fb";
+      ctx.fillRect(x + 1, y + 1, celulaLargura - 2, celulaAltura - 2);
+      continue;
+    }
+
+    const data = formatKey(criarDataLocal(ano, mes + 1, dia));
+    const registro = registrosMes.get(data);
+    const status = registro?.status === "FOLGA" ? "OFF" : getStatus(criarDataLocal(ano, mes + 1, dia));
+    const corStatus = status === "WORK" ? cores.verde : status === "OFF" ? cores.laranja : "#6b7280";
+
+    ctx.fillStyle = cores.branco;
+    ctx.fillRect(x + 1, y + 1, celulaLargura - 2, celulaAltura - 2);
+    ctx.fillStyle = corStatus;
+    ctx.beginPath();
+    ctx.arc(x + 34, y + 34, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = cores.branco;
+    ctx.font = "bold 24px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(dia), x + 34, y + 43);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = cores.preto;
+    ctx.font = "bold 24px Arial, sans-serif";
+    ctx.fillText(registro?.status === "FOLGA" ? "Folga" : registro ? "Trabalho" : status === "OFF" ? "Folga" : "Previsto", x + 66, y + 42);
+
+    ctx.font = "22px Arial, sans-serif";
+    if (registro?.status === "FOLGA") {
+      ctx.fillText("Dia livre", x + 24, y + 92);
+    } else if (registro) {
+      ctx.fillText(`${registro.local || "-"} • ${registro.entrada || "-"}`, x + 24, y + 92);
+      ctx.fillText(`Sair: ${registro.sairCasa || "-"}`, x + 24, y + 126);
+    } else {
+      ctx.fillStyle = "#4b5563";
+      ctx.fillText(status === "OFF" ? "Sem turno" : "Sem horário", x + 24, y + 92);
+    }
+  }
+
+  ctx.fillStyle = cores.preto;
+  ctx.font = "22px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(`Gerado em ${new Date().toLocaleString("pt-BR")}`, largura / 2, altura - 50);
+
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
+}
+
+function coletarRegistrosMes(ano, mes) {
+  const inicio = formatKey(criarDataLocal(ano, mes + 1, 1));
+  const fim = formatKey(criarDataLocal(ano, mes + 1, new Date(ano, mes + 1, 0).getDate()));
+  return new Map(coletarRegistrosPeriodo(inicio, fim).map((registro) => [registro.data, registro]));
+}
+
+function desenharLegendaImagem(ctx, x, y, cores) {
+  const itens = [
+    { texto: "Trabalho", cor: cores.verde },
+    { texto: "Folga", cor: cores.laranja },
+    { texto: "Sem escala", cor: "#6b7280" }
+  ];
+
+  ctx.font = "bold 24px Arial, sans-serif";
+  ctx.textAlign = "left";
+  itens.forEach((item, index) => {
+    const itemX = x + index * 270;
+    ctx.fillStyle = item.cor;
+    ctx.beginPath();
+    ctx.arc(itemX + 16, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = cores.preto;
+    ctx.fillText(item.texto, itemX + 42, y + 8);
+  });
+}
+
+function desenharRetanguloArredondado(ctx, x, y, largura, altura, raio, preenchimento, borda = "") {
+  ctx.beginPath();
+  ctx.moveTo(x + raio, y);
+  ctx.lineTo(x + largura - raio, y);
+  ctx.quadraticCurveTo(x + largura, y, x + largura, y + raio);
+  ctx.lineTo(x + largura, y + altura - raio);
+  ctx.quadraticCurveTo(x + largura, y + altura, x + largura - raio, y + altura);
+  ctx.lineTo(x + raio, y + altura);
+  ctx.quadraticCurveTo(x, y + altura, x, y + altura - raio);
+  ctx.lineTo(x, y + raio);
+  ctx.quadraticCurveTo(x, y, x + raio, y);
+  ctx.closePath();
+
+  if (preenchimento) {
+    ctx.fillStyle = preenchimento;
+    ctx.fill();
+  }
+
+  if (borda) {
+    ctx.strokeStyle = borda;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+function carregarImagem(src) {
+  return new Promise((resolve, reject) => {
+    const imagem = new Image();
+    imagem.onload = () => resolve(imagem);
+    imagem.onerror = reject;
+    imagem.src = src;
+  });
 }
 
 function renderCalendar() {
