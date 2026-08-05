@@ -293,7 +293,8 @@ h1 {
   padding: 9px 10px;
 }
 
-.btn-export-pdf {
+.btn-export-pdf,
+.btn-export-image {
   margin-top: 12px;
   width: 100%;
   min-height: 48px;
@@ -320,9 +321,21 @@ h1 {
   color: #ffffff;
 }
 
-.btn-export-pdf svg {
+.btn-export-pdf svg,
+.btn-export-image svg {
   width: 18px;
   height: 18px;
+}
+
+.btn-export-image {
+  border-color: rgba(254, 94, 29, 0.45);
+  background: linear-gradient(135deg, #fe5e1d, #d94a12);
+}
+
+.btn-export-pdf:disabled,
+.btn-export-image:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 body.light-mode .export-shell {

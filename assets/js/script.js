@@ -119,6 +119,7 @@ const dataFallbackTbody = document.getElementById("dataFallbackTbody");
 const exportStartDateInput = document.getElementById("exportStartDate");
 const exportEndDateInput = document.getElementById("exportEndDate");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
+const exportImageBtn = document.getElementById("exportImageBtn");
 const addDayBtn = document.getElementById("addDayBtn");
 
 
@@ -277,6 +278,7 @@ closeDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 cancelDataFallbackModalBtn?.addEventListener("click", fecharModalDataFallback);
 saveDataFallbackModalBtn?.addEventListener("click", confirmarDatasFallback);
 exportPdfBtn?.addEventListener("click", exportarEscalaPdf);
+exportImageBtn?.addEventListener("click", exportarImagemMes);
 addDayBtn?.addEventListener("click", abrirModalNovoDia);
 lightModeToggle?.addEventListener("change", () => {
   const ativo = lightModeToggle.checked;
@@ -420,16 +422,21 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
 
     if (!datas.length) return;
 
+    const primeiraColunaHorarioX = datas[0].x - 8;
     const linhas = agruparItensPorLinhaPDF(itens);
-    const linhaUsuario = linhas.find((linha) => normalizarTextoPDF(linha.map((item) => item.texto).join(" ")).includes(nomeBusca));
+    const linhaUsuario = encontrarLinhaUsuarioPDF(linhas, itens, nomeBusca, primeiraColunaHorarioX);
     if (!linhaUsuario) return;
+
+    const faixaVerticalUsuario = linhaUsuario.faixaVertical || calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario);
 
     datas.forEach((cabecalho, index) => {
       const proximo = datas[index + 1];
       const minX = cabecalho.x - 8;
       const maxX = proximo ? proximo.x - 8 : cabecalho.x + Math.max(cabecalho.largura, 40) + 90;
-      const textosCelula = linhaUsuario
+      const textosCelula = itens
         .filter((item) => item.x >= minX && item.x < maxX)
+        .filter((item) => item.y >= faixaVerticalUsuario.minY && item.y < faixaVerticalUsuario.maxY)
+        .sort((a, b) => a.x - b.x)
         .map((item) => item.texto)
         .filter((texto) => !normalizarTextoPDF(texto).includes(nomeBusca));
       const textoCelula = textosCelula.join(" ").trim();
@@ -439,6 +446,98 @@ function extrairRegistrosTabelaPDF(pdfExtraido) {
   });
 
   return removerRegistrosDuplicados(registros);
+}
+
+function encontrarLinhaUsuarioPDF(linhas, itens, nomeBusca, primeiraColunaHorarioX) {
+  const candidatosPorCodigo = encontrarLinhasPorCodigoFuncionarioPDF(itens, primeiraColunaHorarioX);
+  const candidatos = candidatosPorCodigo.length
+    ? candidatosPorCodigo
+    : linhas.map((linha) => ({ itens: linha, faixaVertical: calcularFaixaVerticalLinhaUsuarioPDF(linhas, linha) }));
+
+  const candidatosComPontuacao = candidatos
+    .map((linha) => {
+      const itensNome = linha.itens
+        .filter((item) => item.x < primeiraColunaHorarioX)
+        .sort((a, b) => a.x - b.x);
+      const textoNome = normalizarTextoPDF(itensNome.map((item) => item.texto).join(" "));
+      const textosIndividuais = itensNome.map((item) => normalizarTextoPDF(item.texto));
+
+      return {
+        ...linha,
+        pontuacao: calcularPontuacaoLinhaUsuarioPDF(textoNome, textosIndividuais, nomeBusca)
+      };
+    })
+    .filter((linha) => linha.pontuacao > 0)
+    .sort((a, b) => b.pontuacao - a.pontuacao);
+
+  return candidatosComPontuacao[0] || null;
+}
+
+function encontrarLinhasPorCodigoFuncionarioPDF(itens, primeiraColunaHorarioX) {
+  const codigoFuncionarioRegex = /^[A-Z]{1,3}\d{2,4}$/;
+  const codigos = itens
+    .filter((item) => item.x < primeiraColunaHorarioX)
+    .filter((item) => codigoFuncionarioRegex.test(normalizarTextoPDF(item.texto)))
+    .sort((a, b) => a.y - b.y);
+
+  return codigos.map((codigo, index) => {
+    const codigoAnterior = codigos[index - 1];
+    const proximoCodigo = codigos[index + 1];
+    const alturaMedia = Math.max(codigo.altura || 0, 10);
+    const minY = codigoAnterior ? (codigoAnterior.y + codigo.y) / 2 : codigo.y - alturaMedia;
+    const maxY = proximoCodigo ? (codigo.y + proximoCodigo.y) / 2 : codigo.y + alturaMedia;
+    const itensLinha = itens
+      .filter((item) => item.y >= minY && item.y < maxY)
+      .sort((a, b) => a.x - b.x);
+
+    return {
+      itens: itensLinha,
+      faixaVertical: { minY, maxY }
+    };
+  });
+}
+
+function calcularPontuacaoLinhaUsuarioPDF(textoNome, textosIndividuais, nomeBusca) {
+  if (!textoNome.includes(nomeBusca)) return 0;
+
+  const termosBusca = nomeBusca.split(" ").filter(Boolean);
+  const contemTodosTermos = termosBusca.every((termo) => textoNome.includes(termo));
+  if (!contemTodosTermos) return 0;
+
+  let pontuacao = 10;
+
+  if (textosIndividuais.some((texto) => texto === nomeBusca)) pontuacao += 100;
+  if (textosIndividuais.some((texto) => texto.startsWith(`${nomeBusca} `))) pontuacao += 60;
+  if (textosIndividuais.filter((texto) => texto.includes(nomeBusca)).length > 1) pontuacao += 30;
+  if (new RegExp(`(^| )${escaparRegex(nomeBusca)}( |$)`).test(textoNome)) pontuacao += 20;
+
+  return pontuacao;
+}
+
+function escaparRegex(valor) {
+  return String(valor).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function calcularFaixaVerticalLinhaUsuarioPDF(linhas, linhaUsuario) {
+  const itensLinhaUsuario = linhaUsuario.itens || linhaUsuario;
+  const linhasOrdenadas = linhas
+    .map((itens) => ({ y: mediaLinhaPDF(itens), itens }))
+    .sort((a, b) => a.y - b.y);
+  const yUsuario = mediaLinhaPDF(itensLinhaUsuario);
+  const indice = linhasOrdenadas.findIndex((linha) => Math.abs(linha.y - yUsuario) <= 0.5);
+  const linhaAnterior = indice > 0 ? linhasOrdenadas[indice - 1] : null;
+  const proximaLinha = indice >= 0 && indice < linhasOrdenadas.length - 1 ? linhasOrdenadas[indice + 1] : null;
+  const alturaMedia = Math.max(...itensLinhaUsuario.map((item) => item.altura || 0), 10);
+
+  return {
+    minY: linhaAnterior ? (linhaAnterior.y + yUsuario) / 2 : yUsuario - alturaMedia,
+    maxY: proximaLinha ? (yUsuario + proximaLinha.y) / 2 : yUsuario + alturaMedia
+  };
+}
+
+function mediaLinhaPDF(itens) {
+  if (!itens?.length) return 0;
+  return itens.reduce((total, item) => total + item.y, 0) / itens.length;
 }
 
 function agruparItensPorLinhaPDF(itens) {
@@ -963,6 +1062,299 @@ function exportarEscalaPdf() {
     exportPdfBtn.disabled = false;
     exportPdfBtn.querySelector("span").innerText = "Exportar período em PDF";
   }
+}
+
+async function exportarImagemMes() {
+  if (!exportImageBtn) return;
+
+  if (!window.HTMLCanvasElement) {
+    alert("Seu navegador não permite gerar a imagem agora.");
+    return;
+  }
+
+  exportImageBtn.disabled = true;
+  const textoOriginal = exportImageBtn.querySelector("span")?.innerText || "Exportar imagem do mês";
+  if (exportImageBtn.querySelector("span")) exportImageBtn.querySelector("span").innerText = "Gerando imagem...";
+
+  try {
+    const blob = await gerarImagemMesSelecionado();
+    if (!blob) throw new Error("Canvas não gerou a imagem.");
+
+    const ano = dataAtual.getFullYear();
+    const mes = String(dataAtual.getMonth() + 1).padStart(2, "0");
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `escala-${ano}-${mes}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (erro) {
+    console.error("Erro ao exportar imagem do mês:", erro);
+    alert("Não foi possível exportar a imagem do mês. Tente novamente.");
+  } finally {
+    exportImageBtn.disabled = false;
+    if (exportImageBtn.querySelector("span")) exportImageBtn.querySelector("span").innerText = textoOriginal;
+  }
+}
+
+async function gerarImagemMesSelecionado() {
+  const largura = 1400;
+  const altura = 1700;
+  const margem = 70;
+  const canvas = document.createElement("canvas");
+  canvas.width = largura;
+  canvas.height = altura;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Contexto 2D indisponível.");
+
+  const cores = {
+    azul: "#1d1d6b",
+    verde: "#199e48",
+    laranja: "#fe5e1d",
+    branco: "#fff",
+    preto: "#000",
+    cinza: "#f3f4f6",
+    borda: "#d8dce8"
+  };
+  const ano = dataAtual.getFullYear();
+  const mes = dataAtual.getMonth();
+  const registrosMes = coletarRegistrosMes(ano, mes);
+  const nomeGuerra = obterNomeExibicao(configAtual.nomeUsuario || "");
+  const tituloMes = `${mesesNome[mes]} de ${ano}`;
+
+  ctx.fillStyle = cores.branco;
+  ctx.fillRect(0, 0, largura, altura);
+
+  desenharRetanguloArredondado(ctx, margem, margem, largura - margem * 2, 240, 34, cores.azul);
+  const logo = await carregarImagem("./assets/img-logo-trivia-white.svg").catch(() => null);
+  if (logo) {
+    desenharImagemContida(ctx, logo, margem + 42, margem + 42, 360, 90);
+  } else {
+    ctx.fillStyle = cores.branco;
+    ctx.font = "bold 42px Arial, sans-serif";
+    ctx.fillText("Trivia Trens", margem + 42, margem + 88);
+  }
+
+  ctx.fillStyle = cores.branco;
+  ctx.textAlign = "right";
+  ctx.font = "bold 58px Arial, sans-serif";
+  ctx.fillText("Escala mensal", largura - margem - 42, margem + 92);
+  ctx.font = "bold 42px Arial, sans-serif";
+  ctx.fillText(tituloMes, largura - margem - 42, margem + 150);
+  ctx.font = "28px Arial, sans-serif";
+  ctx.fillText(`Nome de guerra: ${nomeGuerra || "Não configurado"}`, largura - margem - 42, margem + 197);
+  ctx.textAlign = "left";
+
+  const legendaY = margem + 280;
+  desenharLegendaImagem(ctx, margem, legendaY, cores);
+
+  const calendarioX = margem;
+  const calendarioY = legendaY + 90;
+  const calendarioLargura = largura - margem * 2;
+  const headerSemanaAltura = 72;
+  const celulaLargura = calendarioLargura / 7;
+  const celulaAltura = 165;
+  const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const totalCelulas = Math.ceil((primeiroDia + diasNoMes) / 7) * 7;
+
+  desenharRetanguloArredondado(ctx, calendarioX, calendarioY, calendarioLargura, headerSemanaAltura + (totalCelulas / 7) * celulaAltura, 26, cores.branco, cores.borda);
+
+  diasSemana.forEach((dia, index) => {
+    const x = calendarioX + index * celulaLargura;
+    ctx.fillStyle = cores.azul;
+    ctx.fillRect(x, calendarioY, celulaLargura, headerSemanaAltura);
+    ctx.fillStyle = cores.branco;
+    ctx.font = "bold 26px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(dia, x + celulaLargura / 2, calendarioY + 45);
+  });
+
+  for (let celula = 0; celula < totalCelulas; celula++) {
+    const dia = celula - primeiroDia + 1;
+    const coluna = celula % 7;
+    const linha = Math.floor(celula / 7);
+    const x = calendarioX + coluna * celulaLargura;
+    const y = calendarioY + headerSemanaAltura + linha * celulaAltura;
+
+    if (dia < 1 || dia > diasNoMes) {
+      desenharRetanguloArredondado(ctx, x + 10, y + 10, celulaLargura - 20, celulaAltura - 20, 20, "#f7f7fb", "#eef0f6");
+      continue;
+    }
+
+    const data = formatKey(criarDataLocal(ano, mes + 1, dia));
+    const registro = registrosMes.get(data);
+    const status = registro?.status === "FOLGA" ? "OFF" : getStatus(criarDataLocal(ano, mes + 1, dia));
+
+    desenharDiaImagem(ctx, {
+      x,
+      y,
+      largura: celulaLargura,
+      altura: celulaAltura,
+      dia,
+      registro,
+      status,
+      cores
+    });
+  }
+
+  ctx.fillStyle = cores.preto;
+  ctx.font = "22px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(`Gerado em ${new Date().toLocaleString("pt-BR")}`, largura / 2, altura - 50);
+
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
+}
+
+function desenharDiaImagem(ctx, { x, y, largura, altura, dia, registro, status, cores }) {
+  const padding = 10;
+  const cardX = x + padding;
+  const cardY = y + padding;
+  const cardLargura = largura - padding * 2;
+  const cardAltura = altura - padding * 2;
+  const ehFolga = registro?.status === "FOLGA" || status === "OFF";
+  const ehTrabalho = Boolean(registro && registro.status !== "FOLGA");
+  const corPrincipal = ehTrabalho ? cores.verde : ehFolga ? cores.laranja : "#6b7280";
+  const corFundo = ehTrabalho ? "#f0fbf4" : ehFolga ? "#fff3ed" : "#f7f7fb";
+  const textoStatus = ehTrabalho ? "TRABALHO" : ehFolga ? "FOLGA" : "PREVISTO";
+
+  ctx.save();
+  ctx.shadowColor = "rgba(29, 29, 107, 0.10)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 7;
+  desenharRetanguloArredondado(ctx, cardX, cardY, cardLargura, cardAltura, 22, corFundo, "#e6e8f0");
+  ctx.restore();
+
+  desenharRetanguloArredondado(ctx, cardX, cardY, cardLargura, 12, 8, corPrincipal);
+
+  ctx.fillStyle = corPrincipal;
+  ctx.beginPath();
+  ctx.arc(cardX + 28, cardY + 38, 23, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = cores.branco;
+  ctx.font = "bold 23px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(String(dia), cardX + 28, cardY + 47);
+
+  desenharChipImagem(ctx, textoStatus, cardX + 60, cardY + 21, cardLargura - 74, 34, corPrincipal, cores.branco, 18);
+
+  ctx.textAlign = "left";
+  if (ehTrabalho) {
+    const local = normalizarTextoPDF(registro.local || "-");
+    const corLocal = local === "EGO" ? cores.laranja : local === "BAS" ? cores.azul : cores.preto;
+    desenharChipImagem(ctx, local || "-", cardX + 18, cardY + 75, 72, 34, corLocal, cores.branco, 20);
+
+    ctx.fillStyle = cores.preto;
+    ctx.font = "bold 31px Arial, sans-serif";
+    ctx.fillText(registro.entrada || "-", cardX + 104, cardY + 103);
+
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Entrada", cardX + 104, cardY + 128);
+  } else if (ehFolga) {
+    ctx.fillStyle = cores.laranja;
+    ctx.font = "bold 30px Arial, sans-serif";
+    ctx.fillText("Dia livre", cardX + 18, cardY + 101);
+    ctx.fillStyle = "#7c2d12";
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Sem turno na escala", cardX + 18, cardY + 128);
+  } else {
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "bold 25px Arial, sans-serif";
+    ctx.fillText("Sem horário", cardX + 18, cardY + 101);
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Aguardando importação", cardX + 18, cardY + 128);
+  }
+}
+
+function desenharChipImagem(ctx, texto, x, y, largura, altura, preenchimento, corTexto, tamanhoFonte = 18) {
+  desenharRetanguloArredondado(ctx, x, y, largura, altura, altura / 2, preenchimento);
+  ctx.fillStyle = corTexto;
+  ctx.font = `bold ${tamanhoFonte}px Arial, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(texto, x + largura / 2, y + altura / 2 + tamanhoFonte / 3);
+}
+
+function desenharImagemContida(ctx, imagem, x, y, largura, altura) {
+  const proporcaoImagem = imagem.naturalWidth / imagem.naturalHeight;
+  const proporcaoCaixa = largura / altura;
+  const larguraDesenho = proporcaoImagem > proporcaoCaixa ? largura : altura * proporcaoImagem;
+  const alturaDesenho = proporcaoImagem > proporcaoCaixa ? largura / proporcaoImagem : altura;
+  const desenhoX = x + (largura - larguraDesenho) / 2;
+  const desenhoY = y + (altura - alturaDesenho) / 2;
+  ctx.drawImage(imagem, desenhoX, desenhoY, larguraDesenho, alturaDesenho);
+}
+
+function coletarRegistrosMes(ano, mes) {
+  const inicio = formatKey(criarDataLocal(ano, mes + 1, 1));
+  const fim = formatKey(criarDataLocal(ano, mes + 1, new Date(ano, mes + 1, 0).getDate()));
+  return new Map(coletarRegistrosPeriodo(inicio, fim).map((registro) => [registro.data, registro]));
+}
+
+function desenharLegendaImagem(ctx, x, y, cores) {
+  const itens = [
+    { texto: "Trabalho", cor: cores.verde, tipo: "ponto" },
+    { texto: "Folga", cor: cores.laranja, tipo: "ponto" },
+    { texto: "BAS", cor: cores.azul, tipo: "chip" },
+    { texto: "EGO", cor: cores.laranja, tipo: "chip" }
+  ];
+
+  ctx.font = "bold 24px Arial, sans-serif";
+  ctx.textAlign = "left";
+  itens.forEach((item, index) => {
+    const itemX = x + index * 235;
+    if (item.tipo === "chip") {
+      desenharChipImagem(ctx, item.texto, itemX, y - 18, 72, 36, item.cor, cores.branco, 19);
+      ctx.fillStyle = cores.preto;
+      ctx.fillText(item.texto === "BAS" ? "Base BAS" : "Base EGO", itemX + 86, y + 8);
+      return;
+    }
+
+    ctx.fillStyle = item.cor;
+    ctx.beginPath();
+    ctx.arc(itemX + 16, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = cores.preto;
+    ctx.fillText(item.texto, itemX + 42, y + 8);
+  });
+}
+
+function desenharRetanguloArredondado(ctx, x, y, largura, altura, raio, preenchimento, borda = "") {
+  ctx.beginPath();
+  ctx.moveTo(x + raio, y);
+  ctx.lineTo(x + largura - raio, y);
+  ctx.quadraticCurveTo(x + largura, y, x + largura, y + raio);
+  ctx.lineTo(x + largura, y + altura - raio);
+  ctx.quadraticCurveTo(x + largura, y + altura, x + largura - raio, y + altura);
+  ctx.lineTo(x + raio, y + altura);
+  ctx.quadraticCurveTo(x, y + altura, x, y + altura - raio);
+  ctx.lineTo(x, y + raio);
+  ctx.quadraticCurveTo(x, y, x + raio, y);
+  ctx.closePath();
+
+  if (preenchimento) {
+    ctx.fillStyle = preenchimento;
+    ctx.fill();
+  }
+
+  if (borda) {
+    ctx.strokeStyle = borda;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+function carregarImagem(src) {
+  return new Promise((resolve, reject) => {
+    const imagem = new Image();
+    imagem.onload = () => resolve(imagem);
+    imagem.onerror = reject;
+    imagem.src = src;
+  });
 }
 
 function renderCalendar() {
