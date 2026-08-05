@@ -1130,7 +1130,7 @@ async function gerarImagemMesSelecionado() {
   desenharRetanguloArredondado(ctx, margem, margem, largura - margem * 2, 240, 34, cores.azul);
   const logo = await carregarImagem("./assets/img-logo-trivia-white.svg").catch(() => null);
   if (logo) {
-    ctx.drawImage(logo, margem + 42, margem + 42, 360, 60);
+    desenharImagemContida(ctx, logo, margem + 42, margem + 42, 360, 90);
   } else {
     ctx.fillStyle = cores.branco;
     ctx.font = "bold 42px Arial, sans-serif";
@@ -1180,48 +1180,25 @@ async function gerarImagemMesSelecionado() {
     const x = calendarioX + coluna * celulaLargura;
     const y = calendarioY + headerSemanaAltura + linha * celulaAltura;
 
-    ctx.strokeStyle = cores.borda;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, celulaLargura, celulaAltura);
-
     if (dia < 1 || dia > diasNoMes) {
-      ctx.fillStyle = "#f8f8fb";
-      ctx.fillRect(x + 1, y + 1, celulaLargura - 2, celulaAltura - 2);
+      desenharRetanguloArredondado(ctx, x + 10, y + 10, celulaLargura - 20, celulaAltura - 20, 20, "#f7f7fb", "#eef0f6");
       continue;
     }
 
     const data = formatKey(criarDataLocal(ano, mes + 1, dia));
     const registro = registrosMes.get(data);
     const status = registro?.status === "FOLGA" ? "OFF" : getStatus(criarDataLocal(ano, mes + 1, dia));
-    const corStatus = status === "WORK" ? cores.verde : status === "OFF" ? cores.laranja : "#6b7280";
 
-    ctx.fillStyle = cores.branco;
-    ctx.fillRect(x + 1, y + 1, celulaLargura - 2, celulaAltura - 2);
-    ctx.fillStyle = corStatus;
-    ctx.beginPath();
-    ctx.arc(x + 34, y + 34, 22, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = cores.branco;
-    ctx.font = "bold 24px Arial, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(String(dia), x + 34, y + 43);
-
-    ctx.textAlign = "left";
-    ctx.fillStyle = cores.preto;
-    ctx.font = "bold 24px Arial, sans-serif";
-    ctx.fillText(registro?.status === "FOLGA" ? "Folga" : registro ? "Trabalho" : status === "OFF" ? "Folga" : "Previsto", x + 66, y + 42);
-
-    ctx.font = "22px Arial, sans-serif";
-    if (registro?.status === "FOLGA") {
-      ctx.fillText("Dia livre", x + 24, y + 92);
-    } else if (registro) {
-      ctx.fillText(`${registro.local || "-"} • ${registro.entrada || "-"}`, x + 24, y + 92);
-      ctx.fillText(`Sair: ${registro.sairCasa || "-"}`, x + 24, y + 126);
-    } else {
-      ctx.fillStyle = "#4b5563";
-      ctx.fillText(status === "OFF" ? "Sem turno" : "Sem horário", x + 24, y + 92);
-    }
+    desenharDiaImagem(ctx, {
+      x,
+      y,
+      largura: celulaLargura,
+      altura: celulaAltura,
+      dia,
+      registro,
+      status,
+      cores
+    });
   }
 
   ctx.fillStyle = cores.preto;
@@ -1232,6 +1209,86 @@ async function gerarImagemMesSelecionado() {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png", 0.95));
 }
 
+function desenharDiaImagem(ctx, { x, y, largura, altura, dia, registro, status, cores }) {
+  const padding = 10;
+  const cardX = x + padding;
+  const cardY = y + padding;
+  const cardLargura = largura - padding * 2;
+  const cardAltura = altura - padding * 2;
+  const ehFolga = registro?.status === "FOLGA" || status === "OFF";
+  const ehTrabalho = Boolean(registro && registro.status !== "FOLGA");
+  const corPrincipal = ehTrabalho ? cores.verde : ehFolga ? cores.laranja : "#6b7280";
+  const corFundo = ehTrabalho ? "#f0fbf4" : ehFolga ? "#fff3ed" : "#f7f7fb";
+  const textoStatus = ehTrabalho ? "TRABALHO" : ehFolga ? "FOLGA" : "PREVISTO";
+
+  ctx.save();
+  ctx.shadowColor = "rgba(29, 29, 107, 0.10)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 7;
+  desenharRetanguloArredondado(ctx, cardX, cardY, cardLargura, cardAltura, 22, corFundo, "#e6e8f0");
+  ctx.restore();
+
+  desenharRetanguloArredondado(ctx, cardX, cardY, cardLargura, 12, 8, corPrincipal);
+
+  ctx.fillStyle = corPrincipal;
+  ctx.beginPath();
+  ctx.arc(cardX + 28, cardY + 38, 23, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = cores.branco;
+  ctx.font = "bold 23px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(String(dia), cardX + 28, cardY + 47);
+
+  desenharChipImagem(ctx, textoStatus, cardX + 60, cardY + 21, cardLargura - 74, 34, corPrincipal, cores.branco, 18);
+
+  ctx.textAlign = "left";
+  if (ehTrabalho) {
+    const local = normalizarTextoPDF(registro.local || "-");
+    const corLocal = local === "EGO" ? cores.laranja : local === "BAS" ? cores.azul : cores.preto;
+    desenharChipImagem(ctx, local || "-", cardX + 18, cardY + 75, 72, 34, corLocal, cores.branco, 20);
+
+    ctx.fillStyle = cores.preto;
+    ctx.font = "bold 31px Arial, sans-serif";
+    ctx.fillText(registro.entrada || "-", cardX + 104, cardY + 103);
+
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Entrada", cardX + 104, cardY + 128);
+  } else if (ehFolga) {
+    ctx.fillStyle = cores.laranja;
+    ctx.font = "bold 30px Arial, sans-serif";
+    ctx.fillText("Dia livre", cardX + 18, cardY + 101);
+    ctx.fillStyle = "#7c2d12";
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Sem turno na escala", cardX + 18, cardY + 128);
+  } else {
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "bold 25px Arial, sans-serif";
+    ctx.fillText("Sem horário", cardX + 18, cardY + 101);
+    ctx.font = "18px Arial, sans-serif";
+    ctx.fillText("Aguardando importação", cardX + 18, cardY + 128);
+  }
+}
+
+function desenharChipImagem(ctx, texto, x, y, largura, altura, preenchimento, corTexto, tamanhoFonte = 18) {
+  desenharRetanguloArredondado(ctx, x, y, largura, altura, altura / 2, preenchimento);
+  ctx.fillStyle = corTexto;
+  ctx.font = `bold ${tamanhoFonte}px Arial, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(texto, x + largura / 2, y + altura / 2 + tamanhoFonte / 3);
+}
+
+function desenharImagemContida(ctx, imagem, x, y, largura, altura) {
+  const proporcaoImagem = imagem.naturalWidth / imagem.naturalHeight;
+  const proporcaoCaixa = largura / altura;
+  const larguraDesenho = proporcaoImagem > proporcaoCaixa ? largura : altura * proporcaoImagem;
+  const alturaDesenho = proporcaoImagem > proporcaoCaixa ? largura / proporcaoImagem : altura;
+  const desenhoX = x + (largura - larguraDesenho) / 2;
+  const desenhoY = y + (altura - alturaDesenho) / 2;
+  ctx.drawImage(imagem, desenhoX, desenhoY, larguraDesenho, alturaDesenho);
+}
+
 function coletarRegistrosMes(ano, mes) {
   const inicio = formatKey(criarDataLocal(ano, mes + 1, 1));
   const fim = formatKey(criarDataLocal(ano, mes + 1, new Date(ano, mes + 1, 0).getDate()));
@@ -1240,15 +1297,23 @@ function coletarRegistrosMes(ano, mes) {
 
 function desenharLegendaImagem(ctx, x, y, cores) {
   const itens = [
-    { texto: "Trabalho", cor: cores.verde },
-    { texto: "Folga", cor: cores.laranja },
-    { texto: "Sem escala", cor: "#6b7280" }
+    { texto: "Trabalho", cor: cores.verde, tipo: "ponto" },
+    { texto: "Folga", cor: cores.laranja, tipo: "ponto" },
+    { texto: "BAS", cor: cores.azul, tipo: "chip" },
+    { texto: "EGO", cor: cores.laranja, tipo: "chip" }
   ];
 
   ctx.font = "bold 24px Arial, sans-serif";
   ctx.textAlign = "left";
   itens.forEach((item, index) => {
-    const itemX = x + index * 270;
+    const itemX = x + index * 235;
+    if (item.tipo === "chip") {
+      desenharChipImagem(ctx, item.texto, itemX, y - 18, 72, 36, item.cor, cores.branco, 19);
+      ctx.fillStyle = cores.preto;
+      ctx.fillText(item.texto === "BAS" ? "Base BAS" : "Base EGO", itemX + 86, y + 8);
+      return;
+    }
+
     ctx.fillStyle = item.cor;
     ctx.beginPath();
     ctx.arc(itemX + 16, y, 14, 0, Math.PI * 2);
